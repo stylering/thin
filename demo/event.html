@@ -1,0 +1,55 @@
+<!doctype html>
+<html>
+  <head>
+	<meta charset="utf-8">
+	<title>thin event example</title>
+	<style>
+	html,body {height:100%;}
+	</style>
+  </head>
+  <body>
+    <div class="wrap" style="width:300px; height:300px; border:1px solid green;">
+        <div class="sub" style="width:100px; height: 100px; border: 1px solid red;"></div>
+        <div class="sub" style="width:100px; height: 100px; border: 1px solid red;"></div>
+        <input type="text" id="inputText">
+        <a href="http://www.baidu.com" target="_blank" id="testA">testA</a>
+    </div>
+    <script src="../src/thin.core.js"></script>
+    <script src="../src/thin.util.js"></script>
+  	<script src="../src/thin.event.js"></script>
+  	<script type="text/javascript">
+  	(function () {
+      // document.body.addEventListener('click', function(){console.log(1111)}, false);
+      // document.getElementsByClassName('sub')[0].addEventListener('click', function(){console.log(2222)}, false);
+      var el = document.querySelector('.sub');
+      var fun1 = function(e) {
+        console.log('fun1 fun1 fun1');
+        console.log(e);
+        e.preventDefault();
+        // e.stopPropagation();
+      }
+      var fun2 = function(e) {
+        console.log('fun2 fun2 fun2');
+      }
+      var fun3 = function(e) {
+        console.log('fun3 fun3 fun3');
+      }
+
+      thin.event.bind('#testA', 'click', fun1);
+      thin.event.on('.sub', 'mouseenter', fun2);
+      // thin.event.on('.wrap', 'click', fun3);
+      // thin.event.bind('.sub', 'click', fun2);
+      // thin.event.on('.sub', 'mouseenter', fun3);
+      // thin.event.off('.sub', 'mouseenter', fun3);
+      // thin.event.trigger('.sub', 'mouseenter');
+      // thin.event.unbind('.sub', 'click');
+      // thin.event.bind(el, 'click mouseup', fun);
+      // thin.event.unbind(el, 'click', fun);
+      // var inputText = document.getElementById('inputText');
+      // thin.event.add(inputText, 'focusin', function(e){
+      //   console.log(e.type);
+      // });
+  	}())
+  	</script>
+  </body>
+</html>
