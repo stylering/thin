@@ -13,6 +13,7 @@
 		root: '/',
 		routes: undefined,
 		fragment: undefined,
+		handlers: undefined,
 		checkUrl: function(path) {
 			return path.replace(/^\//, '').replace(/\/$/, '').replace(/(.*)/, '\/$1\/');
 		},
@@ -23,10 +24,10 @@
 			
 		},
 		navigator: function(){
-			
+
 		},
 		config: function(options) {
-			options || options = {};
+			if (!options || !options.routes) return;
 			if (options.routes) {
 				this.routes = options.routes;
 			}
@@ -37,6 +38,20 @@
 		},
 		start: function() {
 
+		},
+		getHash: function(){
+			// 去掉#号的hash
+			return location.href.match(/#(.*)$/)[1] || '';
+		},
+		getPath: function() {
+			var path
+				root;
+			path = decodeURI(location.pathname + location.search);
+			root = this.root.slice(0, -1);
+			if (!path.indexOf(root)) {
+				path = path.slice(root.length);
+			}
+			return path.slice(1);
 		},
 		_bindRoutes: function(){
 			var routes,
@@ -51,8 +66,15 @@
 				this.route(route, routes[route]);
 			}
 		},
-		_getFragment function() {
-
+		_getFragment function(fragment) {
+			if (fragment == null) {
+			  if (this._hasPushState || !this._wantsHashChange) {
+			    fragment = this.getPath();
+			  } else {
+			    fragment = this.getHash();
+			  }
+			}
+			return fragment.replace(routeStripper, '');
 		},
 		// 转换正则表达式
 		_routeToRegExp: function (route) {
