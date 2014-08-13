@@ -29,7 +29,7 @@
 
 	// 类型判断函数
 	_forEach(
-		['String', 'Boolean', 'Function', 'Array', 'Object', 'Number'],
+		['String', 'Boolean', 'Function', 'Array', 'Object', 'Number', 'RegExp'],
 		function(v) {
 			thin['is' + v] = function(o) {
 				return Object.prototype.toString.call(o).slice(8, -1) === v;

@@ -1,0 +1,43 @@
+<!doctype html>
+<html>
+  <head>
+	<meta charset="utf-8">
+	<title>thin event example</title>
+	<style>
+	html,body {height:100%;}
+	</style>
+  </head>
+  <body>
+    <ul>
+      <li><a href="#post">#post</a></li>
+      <li><a href="#detail/2022">#detail</a></li>
+      <li><a href="#error/kkkk">#error</a></li>
+    </ul>
+    <script src="../src/thin.core.js"></script>
+    <script src="../src/thin.util.js"></script>
+    <script src="../src/thin.event.js"></script>
+  	<script src="../src/thin.router.js"></script>
+  	<script type="text/javascript">
+  	(function () {
+        var options = {
+          routes: {
+            'post': 'renderList',
+            'detail/:id': 'renderDetail',
+            'error/:error': 'renderError'
+          },
+          renderList: function() {
+            console.log('渲染列表方式');
+          },
+          renderDetail: function (id) {
+            console.log('渲染详情方法 id=' + id);
+          },
+          renderError: function (error) {
+            console.log('url错误，错误信息：' + error); 
+          }
+        };
+        thin.router.config(options);
+        thin.router.start();
+  	}())
+  	</script>
+  </body>
+</html>
