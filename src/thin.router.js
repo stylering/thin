@@ -10,45 +10,77 @@
 	var escapeRegExp  = /[\-{}\[\]+?.,\\\^$|#\s]/g;
 
 	var routeStripper = /^[#\/]|\s+$/g;
+	var pathStripper = /#.*$/;
 
 	var addEvent = function(elem, type, callback) {
 		doc.addEventListener ? elem.addEventListener(type, callback, false) :
 			elem.attachEvent('on' + type, callback);
 	};
 
+	/**
+	 * @descript
+	 */
 	var Router = {
 		options: {
 			root: '/'
 		},
 		routes: [],
 		started: false,
-		checkUrl: function(path) {
-			return path.replace(/^\//, '').replace(/\/$/, '').replace(/(.*)/, '\/$1\/');
-		},
 		add: function(route, callback) {
+			var args,
+				that = this;
 			if (!thin.isRegExp(route)) {
 				route = this.routeToRegExp(route);
 			}
 			this.routes.push({
 				route: route,
-				callback: callback
+				callback: function(fragment) {
+					args = that.extractParameters(route, fragment);
+					if (callback) {
+						callback.call(that, args);
+					}
+				}
 			});
 		},
 		remove: function(route) {
-			var i, routes;
+			var item, i, 
+				routes;
 			if (!thin.isRegExp(route)) {
 				route = this.routeToRegExp(route);
 			}
 			routes = this.routes;
-			thin.forEach(routes, function(i) {
-				if (routes[i].route === route) {
+			thin.forEach(routes, function(item, i) {
+				if (item.route === route) {
 					routes.splice(i, 1);
 					return true;
 				}
 			});
 		},
-		navigator: function(){
-
+		navigate: function(fragment, options){
+			var url;
+			if (!this.started) return;
+			options = options || {};
+			url = this.root + (fragment = this.getFragment(fragment || ''));
+			fragment = fragment.replace(pathStripper, '');
+			if (this.fragment === fragment) return;
+			this.fragment = fragment;
+			if (fragment === '' && url !== '/') {
+				url = url.slice(0, -1);
+			}
+			if (this.options.hasPushState) {
+				// popstate
+				history[options.replace ? 'replaceState' : 'pushState']({}, doc.title, url);
+			} else if (this.options.hasHashChange) {
+				// hashChange
+				if (options.replace) {
+				  var href = location.href.replace(/(javascript:|#).*$/, '');
+				  location.replace(href + '#' + fragment);
+				} else {
+				  location.hash = '#' + fragment;
+				}
+			} else {
+				return location.assign(url);
+			}
 		},
 		config: function(options) {
 			if (!options || !options.routes) return;
@@ -66,6 +98,7 @@
 				this.add(route, callback);
 			}
 		},
+		// 开始监听hashchange或popstate事件
 		start: function(options) {
 			if (this.started === true) return;
 			var that = this;
@@ -87,15 +120,32 @@
 		},
 		loadUrl: function(e) {
 			var current,
-				route, i;
+				item, 
+				that = this,
+				routes;
 			current = this.getFragment();
 			if (current === this.current) return;
-			thin.forEach(this.routes, function(i) {
-				if (this.routes[i].route.test(current)) {
-					this.routes[route](fragment);
-					return true;
+			routes = this.routes;
+
+			thin.forEach(routes, function(item) {
+				if (item.route.test(current)) {
+					item.callback(current);
 				}
 			});
+		},
+		// 提取正则中的参数
+		extractParameters: function(route, fragment) {
+			var params = route.exec(fragment).slice(1);
+			var arr = [];
+			thin.forEach(params, function(param, i) {
+				if (i === params.length - 1) {
+					arr.push(param || null);
+					return;
+				}
+				arr.push(param ? decodeURIComponent(param) : null);
+			});
+			console.log(arr);
+			return arr;
 		},
 		getHash: function(){
 			// 去掉#号的hash
@@ -111,6 +161,7 @@
 			}
 			return path.slice(1);
 		},
+		// 获取url中的hash片段
 		getFragment: function(fragment) {
 			if (fragment == null) {
 			  if (this.options.hasPushState || !this.options.hashChange) {
