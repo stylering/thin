@@ -18,7 +18,7 @@
 	};
 
 	/**
-	 * @descript
+	 * @description
 	 */
 	var Router = {
 		options: {
