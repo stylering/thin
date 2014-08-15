@@ -1,0 +1,160 @@
+<!DOCTYPE>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>test router.js</title>
+  <link rel="stylesheet" href="../asset/qunit-1.15.0.css">
+</head>
+<body>
+<div id="qunit"></div>
+<div id="qunit-fixture"></div>
+<script src="../src/thin.core.js"></script>
+<script src="../src/thin.router.js"></script>
+<script src="../asset/qunit-1.15.0.js"></script>
+<script>
+(function(){
+	
+	var lastRoute = null;
+    var lastArgs = [];
+
+	QUnit.module('thin.router', {
+		setup: function() {
+			lastArgs.length = 0;
+		},
+		teardown: function() {
+			
+		}
+	});
+
+	var routeOptions = {
+		routes: {
+		  "noCallback":                 "noCallback",
+		  "counter":                    "counter",
+		  "search/:query":              "search",
+		  "search/:query/p:page":       "search",
+		  "charñ":                      "charUTF",
+		  "char%C3%B1":                 "charEscaped",
+		  "contacts":                   "contacts",
+		  "contacts/new":               "newContact",
+		  "contacts/:id":               "loadContact",
+		  "route-event/:arg":           "routeEvent",
+		  "optional(/:item)":           "optionalItem",
+		  "named/optional/(y:z)":       "namedOptional",
+		  "splat/*args/end":            "splat",
+		  ":repo/compare/*from...*to":  "github",
+		  "decode/:named/*splat":       "decode",
+		  "*first/complex-*part/*rest": "complex",
+		  "query/:entity":              "query",
+		  // "function/:value":            ExternalObject.routingFunction,
+		  "*anything":                  "anything"
+		},
+
+		initialize : function(options) {
+		  this.testing = options.testing;
+		  this.route('implicit', 'implicit');
+		},
+
+		counter: function() {
+		  this.count++;
+		},
+
+		implicit: function() {
+		  this.count++;
+		},
+
+		search: function(query, page) {
+			lastArgs.push(query);
+			lastArgs.push(page);
+		},
+
+		charUTF: function() {
+		  this.charType = 'UTF';
+		},
+
+		charEscaped: function() {
+		  this.charType = 'escaped';
+		},
+
+		contacts: function(){
+		  this.contact = 'index';
+		},
+
+		newContact: function(){
+		  this.contact = 'new';
+		},
+
+		loadContact: function(){
+		  this.contact = 'load';
+		},
+
+		optionalItem: function(arg){
+		  this.arg = arg != void 0 ? arg : null;
+		},
+
+		splat: function(args) {
+		  this.args = args;
+		},
+
+		github: function(repo, from, to) {
+		  this.repo = repo;
+		  this.from = from;
+		  this.to = to;
+		},
+
+		complex: function(first, part, rest) {
+		  this.first = first;
+		  this.part = part;
+		  this.rest = rest;
+		},
+
+		query: function(entity, args) {
+		  this.entity    = entity;
+		  this.queryArgs = args;
+		},
+		anything: function(whatever) {
+		  this.anything = whatever;
+		},
+
+		namedOptional: function(z) {
+		  this.z = z;
+		},
+		decode: function(named, path) {
+		  this.named = named;
+		  this.path = path;
+		},
+		routeEvent: function(arg) {
+		}
+	};
+
+	var initializeOptions = {
+			initOpt: 100
+		}
+	thin.router.config(routeOptions).start(initializeOptions);
+	// start初始参数
+	QUnit.test('initialize', function(assert) {
+		assert.equal(thin.router.options.initOpt, 100, '100')
+	});
+
+	// QUnit.test("routes (simple)", function(assert) {
+	// 	location.replace('http://' + location.hostname + location.pathname + '#search/news');
+	// 	thin.router.loadUrl('search/news');
+	// 	assert.equal(lastArgs[0], 'news', 'news');
+	// 	assert.equal(lastArgs[1], undefined, 'undefined');
+	// 	assert.equal(thin.router.getFragment(), 'search/news', 'search/news');
+	// });
+
+	QUnit.test("routes (two part)", function(assert) {
+		location.replace('http://' + location.hostname + location.pathname + '#search/nyc/p10');
+		thin.router.loadUrl('search/nyc/p10');
+		console.log(lastArgs);
+		assert.equal(lastArgs[0], 'nyc', 'nyc');
+		assert.equal(lastArgs[1], 'p10', 'p10');
+		assert.equal(thin.router.getFragment(), 'search/nyc/p10', 'search/nyc/p10');
+	});
+
+
+}());
+</script>
+
+</body>
+</html>

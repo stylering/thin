@@ -17,13 +17,16 @@
 			elem.attachEvent('on' + type, callback);
 	};
 
+	var removeEvent = function(elem, type, callback) {
+		doc.removeEventListener ? elem.removeEventListener(type, callback) :
+			elem.dettachEvent('on' + type, callback);
+	};
+
 	/**
 	 * @description
 	 */
 	var Router = {
-		options: {
-			root: '/'
-		},
+		root: '/',
 		routes: [],
 		started: false,
 		add: function(route, callback) {
@@ -37,10 +40,11 @@
 				callback: function(fragment) {
 					args = that.extractParameters(route, fragment);
 					if (callback) {
-						callback.call(that, args);
+						callback.apply(that, args);
 					}
 				}
 			});
+			return this;
 		},
 		remove: function(route) {
 			var item, i, 
@@ -52,9 +56,9 @@
 			thin.forEach(routes, function(item, i) {
 				if (item.route === route) {
 					routes.splice(i, 1);
-					return true;
 				}
 			});
+			return this;
 		},
 		navigate: function(fragment, options){
 			var url;
@@ -63,7 +67,6 @@
 			url = this.root + (fragment = this.getFragment(fragment || ''));
 			fragment = fragment.replace(pathStripper, '');
 			if (this.fragment === fragment) return;
-			this.fragment = fragment;
 			if (fragment === '' && url !== '/') {
 				url = url.slice(0, -1);
 			}
@@ -81,6 +84,7 @@
 			} else {
 				return location.assign(url);
 			}
+			return this;
 		},
 		config: function(options) {
 			if (!options || !options.routes) return;
@@ -97,14 +101,14 @@
 					(callback = options[routes[route]] || null) : (callback = routes[route]); 
 				this.add(route, callback);
 			}
+			return this;
 		},
 		// 开始监听hashchange或popstate事件
 		start: function(options) {
 			if (this.started === true) return;
-			var that = this;
 			this.started = true;
-			options = options || {};
-			this.options.root = options.root || this.options.root;
+			this.options = options = options || {};
+			this.root = options.root || this.root;
 			// 默认是hash方式
 			this.options.hashChange = options.hashChange !== false;
 			this.options.hasHashChange = ('onhashchange' in window) && this.options.hashChange;
@@ -113,20 +117,34 @@
 			this.options.hasPushState = !!(options.pushState && history.pushState);
 			this.fragment = this.getFragment();
 			if (this.options.hasPushState) {
-				addEvent(window, 'popshate', function(e) { that.loadUrl() });
+				addEvent(window, 'popstate', this.listener);
 			} else if (this.options.hasHashChange) {
-				addEvent(window, 'hashchange', function(e) { that.loadUrl() });
+				addEvent(window, 'hashchange', this.listener);
 			}
+			return this;
 		},
-		loadUrl: function(e) {
-			var current,
-				item, 
-				that = this,
-				routes;
-			current = this.getFragment();
-			if (current === this.current) return;
-			routes = this.routes;
+		// stop listener event
+		stop: function (argument) {
+			removeEvent(window, 'popstate', this.listener);
+			removeEvent(window, 'hashchange', this.listener);
+			this.started = false;
+		},
+		// popstate or hashchange listener function
+		listener: function(e) {
+			Router.loadUrl();
+		},
+		loadUrl: function(fragment) {
+			var item, routes,
+				current;
 
+			if (fragment) {
+				current = this.getFragment(fragment);
+			} else {
+				current = this.getFragment();
+				if (current === this.fragment) return;
+			}
+			this.fragment = current;
+			routes = this.routes;
 			thin.forEach(routes, function(item) {
 				if (item.route.test(current)) {
 					item.callback(current);
@@ -144,12 +162,12 @@
 				}
 				arr.push(param ? decodeURIComponent(param) : null);
 			});
-			console.log(arr);
 			return arr;
 		},
 		getHash: function(){
 			// 去掉#号的hash
-			return location.href.match(/#(.*)$/)[1] || '';
+			var match = location.href.match(/#(.*)$/);
+			return match ? match[1] : '';
 		},
 		getPath: function() {
 			var path
@@ -172,7 +190,13 @@
 			}
 			return fragment.replace(routeStripper, '');
 		},
-		// 转换正则表达式
+		/**
+		 * 转换正则表达式
+		 * 对含有“-{}[]+?.,\^$|# ”的字符替换为转义字符
+		 * 对含有括号的字符串进行处理，使它不捕获不做标号
+		 * 对含有(?:与:的字符进行处理，括号括起作为参数
+		 * 对*号进行处理，也作为参数
+		 */
 		routeToRegExp: function (route) {
 			route = route.replace(escapeRegExp, '\\$&')
 	             .replace(optionalParam, '(?:$1)?')
