@@ -63,7 +63,7 @@
 		navigate: function(fragment, options){
 			var url;
 			if (!this.started) return;
-			options = options || {};
+			if (!options || options === true) options = {trigger: !!options};
 			url = this.root + (fragment = this.getFragment(fragment || ''));
 			fragment = fragment.replace(pathStripper, '');
 			if (this.fragment === fragment) return;
@@ -84,6 +84,7 @@
 			} else {
 				return location.assign(url);
 			}
+			if (options.trigger) return this.loadUrl(fragment);
 			return this;
 		},
 		config: function(options) {
