@@ -1,3 +1,8 @@
+/* thin.route.js
+ *
+ * author stylering
+ */
+ 
 (function(){
 	var win = window;
 	var doc = document;
