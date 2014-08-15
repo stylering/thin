@@ -8,35 +8,33 @@
 	</style>
   </head>
   <body>
-      <ul>
-        <li><a href="#actions">test actions</a></li>  
-        <li><a href="#posts/120">Post 120</a></li>  
-        <li><a href="#download/user/images/hey.gif">download gif</a></li>    
-        <li><a href="#help/1">page</a></li>   
-        <li><a href="#folder/david/group">folder</a></li>
+      <ul id="li-wrap">
+        <li><a data-href="actions" href="#actions">test actions</a></li>  
+        <li><a data-href="osts/120" href="#osts/120">Post 120</a></li>  
+        <li><a data-href="download/user/images/hey.gif" 
+          href="#download/user/images/hey.gif">download gif</a></li>    
+        <li><a data-href="help/1" href="#help/1">page</a></li>   
+        <li><a data-href="folder/david/group" href="#folder/david/group">folder</a></li>
       </ul>
       <h3>对应的参数：<span id="args"></span></h3>
 
-
-    <script src="../src/thin.core.js"></script>
-    <script src="../src/thin.util.js"></script>
-    <script src="../src/thin.event.js"></script>
-  	<script src="../src/thin.router.js"></script>
-    <script>  
+      <script src="../src/thin.core.js"></script>
+      <script src="../src/thin.router.js"></script>
+      <script>
         (function (){  
 
           function text(args) {
             document.getElementById('args').innerHTML = args;
           }
 
-          thin.router.config({
-              routes:{  
+          var router = thin.router.config({
+              routes:{
                   "posts/:id": "getPost",
                   "help/:page": "help",  
                   "download/*path": "download",      
-                  "folder/:name/:mode": "openFolder",
-                  "*actions":"defaultRoute",
-              },  
+                  "folder/:name/:mode": "openFolder",  
+                  "*actions": "defaultRoute",
+              }, 
               defaultRoute:function(actions){  
                   text(actions);  
               },  
@@ -44,17 +42,32 @@
                   text(page);  
               },  
               openFolder:function(route,action){  
-                  text(route + ":" + action);  
+                  text(route + "_" + action);  
               },  
               getPost:function(id){  
                   text(id);  
               },  
               download:function(path){  
                   text(path);   
-              },  
-          }).start();
+              }
+          });
 
-        })();  
-    </script>  
+          router.start({
+            pushState: true,
+            root: '/dev/demo/backbone-router.html/'
+          });
+
+          var lis = Array.prototype.slice.apply(document.getElementById('li-wrap').children);
+          lis.forEach(function(li) {
+            var link = li.children[0];
+            link.addEventListener('click', function(e){
+              e.preventDefault();
+              var path = this.getAttribute('data-href');
+              router.navigate(path, true);
+            }, false)
+          });
+
+        })();
+      </script> 
   </body> 
 </html>

@@ -11,6 +11,7 @@
 
 	var routeStripper = /^[#\/]|\s+$/g;
 	var pathStripper = /#.*$/;
+	var trailingSlash = /\/$/;
 
 	var addEvent = function(elem, type, callback) {
 		doc.addEventListener ? elem.addEventListener(type, callback, false) :
@@ -47,7 +48,7 @@
 			}
 			return this;
 		},
-		// 预留自定义初始化函数
+		//执行initialize，使用时自己定义扩展
 		initialize: function() {},
 		// 开始监听hashchange或popstate事件
 		start: function(options) {
@@ -182,15 +183,17 @@
 			var match = location.href.match(/#(.*)$/);
 			return match ? match[1] : '';
 		},
+		// html5的pushState方式， 获取url
 		getPath: function() {
-			var path
+			var fragment,
 				root;
-			path = decodeURI(location.pathname + location.search);
-			root = this.root.slice(0, -1);
-			if (!path.indexOf(root)) {
-				path = path.slice(root.length);
+			fragment = decodeURI(location.pathname + location.search);
+			// 去掉最后的"/"
+			root = this.root.replace(trailingSlash, '');
+			if (!fragment.indexOf(root)) {
+				fragment = fragment.slice(root.length);
 			}
-			return path.slice(1);
+			return fragment;
 		},
 		// 获取url中的hash片段
 		getFragment: function(fragment) {
@@ -205,7 +208,7 @@
 		},
 		/**
 		 * 转换正则表达式
-		 * 对含有“-{}[]+?.,\^$|# ”的字符替换为转义字符
+		 * 对含有“-{}[]+?.,\^$|# ”的字符加上转义字符
 		 * 对含有括号的字符串进行处理，使它不捕获不做标号
 		 * 对含有(?:与:的字符进行处理，括号括起作为参数
 		 * 对*号进行处理，也作为参数
