@@ -29,6 +29,78 @@
 		root: '/',
 		routes: [],
 		started: false,
+		config: function(options) {
+			if (!options || !options.routes) return;
+
+			var routes,
+				route,
+				callback;
+			routes = options.routes;
+			if (typeof routes === 'function') {
+				routes = routes();
+			}
+			for (route in routes) {
+				(typeof routes[route] === 'string') ? 
+					(callback = options[routes[route]] || null) : (callback = routes[route]); 
+				this.add(route, callback);
+			}
+			return this;
+		},
+		// 预留自定义初始化函数
+		initialize: function() {},
+		// 开始监听hashchange或popstate事件
+		start: function(options) {
+			if (this.started === true) return;
+			this.started = true;
+			this.options = options = options || {};
+			this.root = options.root || this.root;
+			// 默认是hash方式
+			this.options.hashChange = options.hashChange !== false;
+			this.options.hasHashChange = ('onhashchange' in window) && this.options.hashChange;
+			this.options.pushState = !!options.pushState;
+			// 是否支持HTML5 pushState
+			this.options.hasPushState = !!(options.pushState && history.pushState);
+			if (this.options.hasPushState) {
+				addEvent(window, 'popstate', this.listener);
+			} else if (this.options.hasHashChange) {
+				addEvent(window, 'hashchange', this.listener);
+			}
+			return this.loadUrl();
+		},
+		// 停止路由监听
+		stop: function (argument) {
+			removeEvent(window, 'popstate', this.listener);
+			removeEvent(window, 'hashchange', this.listener);
+			this.started = false;
+		},
+		// 监听中转函数
+		listener: function(e) {
+			Router.loadUrl();
+		},
+		// 根据hash执行回调函数
+		loadUrl: function(fragment) {
+			var item, routes,
+				current;
+
+			if (fragment) {
+				current = this.getFragment(fragment);
+			} else {
+				current = this.getFragment();
+				if (current === this.fragment) return;
+			}
+			this.fragment = current;
+			routes = this.routes;
+			for (item in routes) {
+				if (routes[item].route.test(current)) {
+					routes[item].callback(current);
+					break;
+				}
+			}
+		},
+		/**
+		 * 1、增加规则到routes队列中
+		 * 2、动态增加路由规则，
+		 */
 		add: function(route, callback) {
 			var args,
 				that = this;
@@ -46,6 +118,7 @@
 			});
 			return this;
 		},
+		// 动态删除路由规则
 		remove: function(route) {
 			var item, i, 
 				routes;
@@ -60,6 +133,9 @@
 			});
 			return this;
 		},
+		/**
+		 *  触发函数监听
+		 */
 		navigate: function(fragment, options){
 			var url;
 			if (!this.started) return;
@@ -86,71 +162,6 @@
 			}
 			if (options.trigger) return this.loadUrl(fragment);
 			return this;
-		},
-		config: function(options) {
-			if (!options || !options.routes) return;
-
-			var routes,
-				route,
-				callback;
-			routes = options.routes;
-			if (typeof routes === 'function') {
-				routes = routes();
-			}
-			for (route in routes) {
-				(typeof routes[route] === 'string') ? 
-					(callback = options[routes[route]] || null) : (callback = routes[route]); 
-				this.add(route, callback);
-			}
-			return this;
-		},
-		// 开始监听hashchange或popstate事件
-		start: function(options) {
-			if (this.started === true) return;
-			this.started = true;
-			this.options = options = options || {};
-			this.root = options.root || this.root;
-			// 默认是hash方式
-			this.options.hashChange = options.hashChange !== false;
-			this.options.hasHashChange = ('onhashchange' in window) && this.options.hashChange;
-			this.options.pushState = !!options.pushState;
-			// 是否支持HTML5 pushState
-			this.options.hasPushState = !!(options.pushState && history.pushState);
-			this.fragment = this.getFragment();
-			if (this.options.hasPushState) {
-				addEvent(window, 'popstate', this.listener);
-			} else if (this.options.hasHashChange) {
-				addEvent(window, 'hashchange', this.listener);
-			}
-			return this;
-		},
-		// stop listener event
-		stop: function (argument) {
-			removeEvent(window, 'popstate', this.listener);
-			removeEvent(window, 'hashchange', this.listener);
-			this.started = false;
-		},
-		// popstate or hashchange listener function
-		listener: function(e) {
-			Router.loadUrl();
-		},
-		loadUrl: function(fragment) {
-			var item, routes,
-				current;
-
-			if (fragment) {
-				current = this.getFragment(fragment);
-			} else {
-				current = this.getFragment();
-				if (current === this.fragment) return;
-			}
-			this.fragment = current;
-			routes = this.routes;
-			thin.forEach(routes, function(item) {
-				if (item.route.test(current)) {
-					item.callback(current);
-				}
-			});
 		},
 		// 提取正则中的参数
 		extractParameters: function(route, fragment) {
