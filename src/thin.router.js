@@ -3,7 +3,7 @@
 	var doc = document;
 	var thin = win.thin || (win.thin = {});
 
-	// backbone regExp
+	// 参考backbone的正则规则
 	var optionalParam = /\((.*?)\)/g;
 	var namedParam    = /(\(\?)?:\w+/g;
 	var splatParam    = /\*\w+/g;
@@ -23,7 +23,8 @@
 	};
 
 	/**
-	 * @description
+	 * @description 路由控制，参考backbone
+	 * 
 	 */
 	var Router = {
 		root: '/',
