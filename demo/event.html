@@ -22,11 +22,12 @@
       // document.body.addEventListener('click', function(){console.log(1111)}, false);
       // document.getElementsByClassName('sub')[0].addEventListener('click', function(){console.log(2222)}, false);
       var el = document.querySelector('.sub');
+      var wrap = document.querySelector('.wrap')
       var fun1 = function(e) {
         console.log('fun1 fun1 fun1');
         console.log(e);
         e.preventDefault();
-        // e.stopPropagation();
+        e.stopPropagation();
       }
       var fun2 = function(e) {
         console.log('fun2 fun2 fun2');
@@ -35,20 +36,10 @@
         console.log('fun3 fun3 fun3');
       }
 
-      thin.event.bind('#testA', 'click', fun1);
-      thin.event.on('.sub', 'mouseenter', fun2);
-      // thin.event.on('.wrap', 'click', fun3);
-      // thin.event.bind('.sub', 'click', fun2);
-      // thin.event.on('.sub', 'mouseenter', fun3);
-      // thin.event.off('.sub', 'mouseenter', fun3);
-      // thin.event.trigger('.sub', 'mouseenter');
-      // thin.event.unbind('.sub', 'click');
-      // thin.event.bind(el, 'click mouseup', fun);
-      // thin.event.unbind(el, 'click', fun);
-      // var inputText = document.getElementById('inputText');
-      // thin.event.add(inputText, 'focusin', function(e){
-      //   console.log(e.type);
-      // });
+      thin.event.on('click', wrap, '#testA', fun1);
+      // thin.event.off('click', wrap, '#testA', fun1);
+      // thin.event.bind('click', wrap, fun2);
+      
   	}())
   	</script>
   </body>
