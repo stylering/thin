@@ -25,7 +25,10 @@
 		return false;
 	};
 	var isFocusinSupported = 'onfocusin' in window;
-	var mouseEvent = 'click mouseup mousemove mousedown';
+	var mouseEvents = {};
+	thin.forEach(['click', 'mouseup', 'mousemove', 'mousedown'], function(e) {
+		mouseEvents[e] = 'MouseEvents';
+	});
 	var specialEvent = {
 		focus: { focus: 'focusin', blur: 'focusout' },
 		hover: { mouseenter: 'mouseover', mouseleave: 'mouseout' }
@@ -34,6 +37,7 @@
 		return specialEvent.hover[type] || (isFocusinSupported && specialEvent.focus[type]) || type;
 	};
 	var compatible = function(event) {
+		if ('isDefaultPrevented' in event) return event;
 		var source,
 			methods;
 
@@ -176,7 +180,7 @@
 			Event.on(type, element, callback);
 		},
 		unbind: function(type, element, callback) {
-			Event.remove(type, element, callback);
+			Event.off(type, element, callback);
 		},
 		// selector|element
 		on: function(type, element, selector, callback) {
@@ -219,9 +223,46 @@
 			});
 		},
 		trigger: function(type, element) {
-			
+			if (element instanceof HTMLElement) {
+				element = [element];
+			}
+			if (!thin.isString(type)) return;
+			thin.forEach(element, function(elem) {
+				thin.forEach(type.split(/\s/), function(t) {
+					var evt, 
+						handles,
+						i;
+
+					if (/^(focus|blur)$/.test(t)) {
+						try { elem[t]() } 
+						catch (e) {}
+						return;
+					}
+					evt = doc.createEvent(mouseEvents[t] || 'Events');
+					evt.initEvent(t, true, true);
+					evt = compatible(evt);
+					evt = proxyEvent(evt);
+					evt.target = elem;
+					handles = findHandles(t, elem);
+					i = handles.length;
+					while (i--) {
+						handles[i].proxy(evt);
+					}
+				});
+			});
 		}
 	};
+
+	// 绑定单个事件函数
+	thin.forEach(['focusin', 'focusout', 'focus', 'blur', 'load', 'resize', 'scroll', 'unload', 'click', 'dblclick',
+	'mousedown', 'mouseup', 'mousemove', 'mouseover', 'mouseout', 'mouseenter', 'mouseleave',
+	'change', 'select', 'keydown', 'keypress', 'keyup', 'error'], function(event) {
+	  	Event[event] = function(elem, callback) {
+	    	return callback ?
+	    		Event.bind(event, elem, callback) :
+	    		Event.trigger(event, elem);
+	  	};
+	});
 
 	thin.event = Event;
 }());

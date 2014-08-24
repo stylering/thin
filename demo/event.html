@@ -36,9 +36,9 @@
         console.log('fun3 fun3 fun3');
       }
 
-      thin.event.on('click', wrap, '#testA', fun1);
-      // thin.event.off('click', wrap, '#testA', fun1);
-      // thin.event.bind('click', wrap, fun2);
+      // thin.event.on('click', wrap, '#testA', fun1);
+      thin.event.click(wrap, fun2);
+      thin.event.trigger('click', wrap);
       
   	}())
   	</script>
