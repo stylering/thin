@@ -10,11 +10,23 @@
 	var win = window;
 	var doc = document;
 	var thin = win.thin || (win.thin = {});
+	// 标识绑定元素与回调函数的唯一性
 	var _guid = 1;
-
+	/*缓存绑定的元素、事件、回调、代理函数
+	thin.cache.__event_cache = {
+		1: [{
+			type: type,				// 绑定的事件类型
+			elem: element,			// 绑定的元素
+			selector: selector,		// 事件代理元素
+			callback: callback,		// 回调函数
+			delegator: delegator,	// 事件代理时的回调函数
+			index: handles.length,	// 标志位，用于解除监听时删除使用
+			proxy: function(){}		// 每个元素的事件监听函数
+		},{}]
+	}*/
 	thin.cache || (thin.cache = {});
 	var cache = thin.cache.__event_cache = {};
-
+	// 获取和设置元素或回调函数的唯一标识id
 	var guid = function(element) {
 		return element._guid || (element._guid = _guid++);
 	}
@@ -24,18 +36,29 @@
 	var returnFalse = function() {
 		return false;
 	};
+	// 是否支持onfocusin和onfocusout事件
 	var isFocusinSupported = 'onfocusin' in window;
+	// 鼠标事件类型，用于触发createEvent时使用
 	var mouseEvents = {};
 	thin.forEach(['click', 'mouseup', 'mousemove', 'mousedown'], function(e) {
 		mouseEvents[e] = 'MouseEvents';
 	});
+	// 标识特殊事件
 	var specialEvent = {
 		focus: { focus: 'focusin', blur: 'focusout' },
 		hover: { mouseenter: 'mouseover', mouseleave: 'mouseout' }
 	};
+	// 获取绑定事件
+	// 当浏览器支持focusin时，focus用focusin代替绑定
+	// 当事件为mouseenter、mouseleave时用真实事件mouseover绑定
 	var realEvent = function(type) {
 		return specialEvent.hover[type] || (isFocusinSupported && specialEvent.focus[type]) || type;
 	};
+	/* 对事件对象进行处理，增加三个属性，用于标识事件的状态
+	 * isDefaultPrevented 判断是否禁用默认事件
+	 * isImmediatePropagationStopped 判断是否禁用事件冒泡和此元素同类型事件的冒泡
+	 * isPropagationStopped 判断是否禁用事件冒泡
+	 */
 	var compatible = function(event) {
 		if ('isDefaultPrevented' in event) return event;
 		var source,
@@ -45,8 +68,8 @@
 		source = event;
 		methods = {
 			preventDefault: 'isDefaultPrevented', 
-			stopPropagation: 'isImmediatePropagationStopped', 
-			stopImmediatePropagation: 'isPropagationStopped'	
+			stopPropagation: 'isPropagationStopped',
+			stopImmediatePropagation: 'isImmediatePropagationStopped'
 		}
 		// 增加属性，用于标记事件是否冒泡、是否被禁止默认事件，主要用于事件代理
 		thin.forEach(methods, function(method, key) {
@@ -55,6 +78,7 @@
 				this[method] = returnTrue;
 				return sourceMethod && sourceMethod.apply(source, arguments);
 			}
+			// 默认方法
 			event[method] = returnFalse;
 		});
 		// zepto.js
@@ -65,6 +89,7 @@
 		}
 		return event;
 	};
+	// 复制原始事件属性，返回新创建的事件对象
 	var proxyEvent = function(event) {
 		var proxy, key;
 		proxy = { originalEvent: event };
@@ -74,7 +99,9 @@
 		return proxy;
 	};
 
-	// zepto.js $.contains
+	/* zepto.js $.contains
+	 * 判断node元素是为parent元素的子元素
+	 */
 	var contains = doc.documentElement.contains ?
 	    function(parent, node) {
 	      return parent !== node && parent.contains(node)
@@ -84,6 +111,9 @@
 	        if (node === parent) return true
 	      return false
 	    }
+	/* 查找缓存在cache中事件对象
+	 * 返回满足条件的事件对象
+	 */
 	var findHandles = function(type, element, callback, selector) {
 		var id, 
 			result = [],
@@ -104,6 +134,12 @@
 		return result;
 	}
 	var Event = {
+		/** 绑定事件，增加绑定事件对象至cache中
+		 * @element 事件对象
+		 * @type 事件类型
+		 * @callback 事件回调参数
+		 * @selector 事件代理元素
+		*/
 		add: function(element, type, callback, selector) {
 			var id, handles, i,
 				handle = {},
@@ -114,6 +150,7 @@
 				id = guid(element);
 				handles = cache[id] || (cache[id] = []);
 				if (selector) {
+					// 判断selector存在时，事件代理函数为delegator
 					delegator = function(e) {
 						var evt;
 						target = e.target;
@@ -129,7 +166,7 @@
 						}
 					}
 				}
-
+				// 创建事件缓存对象
 				handle = {
 					type: t,
 					elem: element,
@@ -138,14 +175,17 @@
 					delegator: delegator,
 					index: handles.length,
 				};
+				// 模拟事件类型mouseenter和mouseleave事件
 				if (t in specialEvent.hover) {
 					callback = function(e) {
-						var related = e.relatedTarget
+						// 获取mouseout和mouseover的relatedTarget对象
+						var related = e.relatedTarget;
 						if (!related || (related !== element && !contains(element, related)))
 						  return handle.callback.apply(element, arguments);
 					}
 				}
 				fn = delegator || callback;
+				// 事件监听函数
 				handle.proxy = function(e) {
 					e = compatible(e);
 					if (e.isImmediatePropagationStopped()) return;
@@ -182,7 +222,12 @@
 		unbind: function(type, element, callback) {
 			Event.off(type, element, callback);
 		},
-		// selector|element
+		/*
+		 * @type 事件类型
+		 * @element 绑定的元素
+		 * @selector 事件代理元素
+		 * @callback 事件回调
+		 */
 		on: function(type, element, selector, callback) {
 
 			if (type && !thin.isString(type)) {
@@ -198,7 +243,7 @@
 			if (element instanceof HTMLElement) {
 				element = [element];
 			}
-			
+			// 设置回调函数的唯一标识
 			guid(callback);
 			thin.forEach(element, function(elem) {
 				Event.add(elem, type, callback, selector);
@@ -238,15 +283,23 @@
 						catch (e) {}
 						return;
 					}
+					// 创建自定义事件
 					evt = doc.createEvent(mouseEvents[t] || 'Events');
+					// 初始化事件
 					evt.initEvent(t, true, true);
+					// 增加事件属性，用于标识冒泡状态和是否禁用默认事件状态
 					evt = compatible(evt);
+					// 创建新的事件对象
 					evt = proxyEvent(evt);
+					// 修改事件的触发元素
 					evt.target = elem;
+					// 查找缓存的事件对象
 					handles = findHandles(t, elem);
 					i = handles.length;
 					while (i--) {
+						// 遍历循环执行回调
 						handles[i].proxy(evt);
+						if (e.isImmediatePropagationStopped()) return false
 					}
 				});
 			});
