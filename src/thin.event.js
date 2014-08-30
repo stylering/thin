@@ -148,6 +148,7 @@
 			
 			thin.forEach(type.split(/\s/), function(t){
 				id = guid(element);
+				// 获取存储在cache中的事件对象
 				handles = cache[id] || (cache[id] = []);
 				if (selector) {
 					// 判断selector存在时，事件代理函数为delegator
@@ -240,7 +241,7 @@
 				callback = selector;
 				selector = undefined;
 			}
-			if (element instanceof HTMLElement) {
+			if (doc || element instanceof HTMLElement) {
 				element = [element];
 			}
 			// 设置回调函数的唯一标识
@@ -260,7 +261,7 @@
 				callback = selector;
 				selector = undefined;
 			}
-			if (element instanceof HTMLElement) {
+			if (doc || element instanceof HTMLElement) {
 				element = [element];
 			}
 			thin.forEach(element, function(elem) {
@@ -268,7 +269,7 @@
 			});
 		},
 		trigger: function(type, element) {
-			if (element instanceof HTMLElement) {
+			if (doc || element instanceof HTMLElement) {
 				element = [element];
 			}
 			if (!thin.isString(type)) return;
@@ -299,7 +300,7 @@
 					while (i--) {
 						// 遍历循环执行回调
 						handles[i].proxy(evt);
-						if (e.isImmediatePropagationStopped()) return false
+						if (evt.isImmediatePropagationStopped()) return false
 					}
 				});
 			});
