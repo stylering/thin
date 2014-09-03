@@ -1,3 +1,7 @@
+/**
+ * @description
+ * 
+ */
 (function(){
 	var win = window;
 	var doc = document;
@@ -5,11 +9,13 @@
 
 	// 全局事件对象
 	var touch = {};
-	var firstTouch;
+	var touchEvent;
+	// 滑动距离
 	var distanceX=0,  distanceY = 0;
 	var tapTimeout, singleTapTimeout, doubleTaptimeout, longTapTimeout, swipeTimeout;
-	var space;
-
+	// 两次触摸的时间间隔
+	var timeSpace;
+	// 滑动方向
 	var direction = function(x1, x2, y1, y2) {
 		return Math.abs(x1 - x2) >= Math.abs(y1 - y2) ?
 			((x1 - x2 > 0) ? 'Left' : 'Right') : ((y1 - y2 > 0) ? 'Top' : 'Bottom');
@@ -23,7 +29,7 @@
 		if (swipeTimeout) clearTimeout(swipeTimeout);
 		tapTimeout = singleTapTimeout = doubleTaptimeout = longTapTimeout = swipeTimeout = null;
 	};
-
+	// 长按事件
 	var longTap = function() {
 		if (touch.last) {
 			thin.event.trigger('longTap', touch.el);
@@ -31,6 +37,7 @@
 		}
 		longTapTimeout = null;
 	}
+	// 清除长按事件
 	var cancelLongTap = function() {
 		if (longTapTimeout) clearTimeout(longTap);
 		longTapTimeout = null;
@@ -42,21 +49,21 @@
 	thin.event.on('touchstart MSPointerDown pointerdown', doc, function(e) {
 		var	distance,
 			now,
-			space;
+			timeSpace;
 
-		firstTouch = e.touches[0];
+		touchEvent = e.touches[0];
 		if (touch.x2) {
 			touch.x2 = undefined;
 			touch.y2 = undefined;
 		}
-		touch.x1 = firstTouch.pageX;
-		touch.y1 = firstTouch.pageY;
-		touch.el = 'tagName' in firstTouch.target ? firstTouch.target : firstTouch.target.parentNode;
+		touch.x1 = touchEvent.pageX;
+		touch.y1 = touchEvent.pageY;
+		touch.el = 'tagName' in touchEvent.target ? touchEvent.target : touchEvent.target.parentNode;
 		now = Date.now();
 		// 两次触摸的时间间隔
-		space = now - touch.last || now;
+		timeSpace = now - touch.last || now;
 		// 如果两次触摸的时间间隔大于0和小于250ms时，作为双触摸事件
-		if (space > 0 && space <= 250) touch.isDoubleTap = true;
+		if (timeSpace > 0 && timeSpace <= 250) touch.isDoubleTap = true;
 		touch.last = now;
 		// 长按750毫秒执行长按事件
 		longTapTimeout = setTimeout(longTap, 750);
@@ -65,9 +72,9 @@
 	thin.event.on('touchmove MSPointerMove pointermove', doc, function(e) {
 		// 触摸已经移动了清除longTap事件
 		cancelLongTap();
-		firstTouch = e.touches[0];
-		touch.x2 = firstTouch.pageX;
-		touch.y2 = firstTouch.pageY;
+		touchEvent = e.touches[0];
+		touch.x2 = touchEvent.pageX;
+		touch.y2 = touchEvent.pageY;
 		// 移动的水平距离
 		distanceX = Math.abs(touch.x1 - touch.x2);
 		// 移动的垂直距离
@@ -115,10 +122,11 @@
 	});
 
 	thin.event.on('touchcancel MSPointerCancel pointercancel', doc, cancelAll);
-
+	thin.event.on('scroll', window, cancelAll);
+	
 	// 增加touch事件API
 	thin.forEach(['tap', 'singleTap', 'longTap', 'doubleTap', 'swipe', 
-		'swipeLeft', 'swipeRight', 'swipeTop', 'swipeBottom'], function(eventName) {
+		'swipeLeft', 'swipeRight', 'swipeTop', 'swipeBottom', 'transform'], function(eventName) {
 		thin.event[eventName] = function(elem, callback) {
 			thin.event.on(eventName, elem, callback);
 		}
