@@ -43,6 +43,14 @@
 		longTapTimeout = null;
 	}
 
+	// 计算两点之间的距离
+	var getDistance = function(x1, x2, y1, y2) {
+		return Math.sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1-y2));
+	}
+	// 计算两点之间的角度
+	var getAngle = function (x1, x2, y1, y2) {
+		return (Math.atan2(y2 - y1, x2 - x1) * 180) / Math.PI;
+	}
 	// webkit内核浏览器事件类型为touchstart
 	// IE9事件类型为MSPointerDown
 	// IE10+事件类型为pointerdown
@@ -126,7 +134,7 @@
 	
 	// 增加touch事件API
 	thin.forEach(['tap', 'singleTap', 'longTap', 'doubleTap', 'swipe', 
-		'swipeLeft', 'swipeRight', 'swipeTop', 'swipeBottom', 'transform'], function(eventName) {
+		'swipeLeft', 'swipeRight', 'swipeTop', 'swipeBottom'], function(eventName) {
 		thin.event[eventName] = function(elem, callback) {
 			thin.event.on(eventName, elem, callback);
 		}

@@ -8,10 +8,24 @@
 	var idRegExp = /^#[\w-]*$/;
 	var tagNameRegExp = /^[\w]+$/;
 	var classNameRegExp = /^\.[\w-]+/;
+	// 检测是否支持classList属性
+	isSupportClassList = 'classList' in doc.body;
 
 	var Dom = {
 		$: function(selector, context) {
-
+			var result;
+			context = context || doc;
+			if (idRegExp.test(selector)) {
+				return (result = this.id(selector.replace('#', ''))) ? [result] : [];
+			} else if (tagNameRegExp.test(selector)) {
+				result = this.tagName(selector, context);
+			} else if (classNameRegExp.test(selector)) {
+				result = this.className(selector.replace('\.', ''), context);
+			} else {
+				reuslt = context.querySelectorAll(selector);
+			}
+			// 类数组对象转换为数组对象
+			return Array.prototype.slice.call(result);
 		},
 		id: function(id) {
 			return doc.getElementById(id);
@@ -28,22 +42,51 @@
 			} else {
 				tags = this.tagName('*', context);
 				for (i=0, len=tags.length; i<len; i++) {
-					if (tags[i].className && (' ' + tags[i].className + ' ').indexOf(' ' + className + '') != -1) {
+					if (tags[i].className && (' ' + tags[i].className + ' ').indexOf(' ' + className + '') >= 0) {
 						elements.push(tags[i]);
 					}
 				}
 				return elements;
 			}
 		},
+		// 删除元素
 		remove: function(node) {
-
+			var parent = node.parentNode;
+			if (parent) parent.removeChild(node);
 		},
-		closest: function() {
-
+		addClass: isSupportClassList ? function(elem, className) {
+			if (elem && className && !this.hasClass(elem, className)) {
+				elem.classList.add(className);
+			}
+		} : function(elem, className) {
+			if (elem && className && !this.hasClass(elem, className)) {
+				elem.className = elem.className + ' ' + className;
+			}
 		},
-		addClass: function() {},
-		removeClass: function() {},
-		hasClass: function() {},
+		removeClass: isSupportClassList ? function(elem, className) {
+			if (elem && className && this.hasClass(elem, className)) {
+				elem.classList.remove(className);
+			}
+		} : function(elem, className) {
+			if (elem && className && this.hasClass(elem, className)) {
+				elem.className = elem.className.replace(new RegExp('(?:^|\\s)' + className + '(?:\\s|$)'), ' ');
+			}
+		},
+		hasClass: isSupportClassList ? function(elem, className) {
+			if (!elem || !className) return false;
+			return elem.classList.contains(className);
+		} : function(elem, className) {
+			if (!elem || !className) return false;
+			return (' ' + elem.className + ' ').indexOf(' ' + className + ' ') > -1
+		},
+		closest: function(elem, selector) {
+			while (elem) {
+				if (this.matchesSelector(elem, selector)) {
+					return elem
+				}
+				elem = elem.parentNode;
+			}
+		},
 		/**
 		 * @param {elem} 
 		 * @param {selector}

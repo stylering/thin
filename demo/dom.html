@@ -10,31 +10,14 @@
   </head>
   <body>
   </body>
-
-  	<div id="box" style="width: 200px; height: 300px; background:green;"></div>
-
+  	<div id="box" class="box" style="width:100px; height:100px; border:1px solid green;"></div>
 	<script src="../src/thin.core.js"></script>
+	<script src="../src/thin.dom.js"></script>
 	<script src="../src/thin.util.js"></script>
 	<script src="../src/thin.event.js"></script>
 	<script src="../src/thin.touch.js"></script>
 	<script>
 	(function(){
-		var box = document.getElementById('box');
-		thin.event.on('swipeLeft', box, function(){
-			console.log('swipeLeft');
-		});
-		thin.event.on('tap', box, function(e){
-			console.log('tap');
-		});
-		thin.event.on('singleTap', box, function(){
-			console.log('singleTap');
-		});
-		thin.event.on('doubleTap', box, function(e){
-			console.log('doubleTap');
-		});
-		thin.event.on('longTap', box, function(){
-			console.log('longTap');
-		});
 
 	}());
 	</script>
