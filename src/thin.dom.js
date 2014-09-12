@@ -79,6 +79,9 @@
 			if (!elem || !className) return false;
 			return (' ' + elem.className + ' ').indexOf(' ' + className + ' ') > -1
 		},
+		toggleClass: function (elem, className) {
+			this.hasClass(elem, className) ? this.removeClass(elem, className) :this.addClass(elem, className);
+		},
 		closest: function(elem, selector) {
 			while (elem) {
 				if (this.matchesSelector(elem, selector)) {
@@ -128,7 +131,9 @@
 					return false;
 				}
 			}
-		}
+		},
+		// 复制当前节点，或者复制当前节点及所有子孙节点
+		cloneNode: function() {}
 	}
 
 	thin.dom = Dom;
