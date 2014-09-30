@@ -12,7 +12,7 @@
 	isSupportClassList = 'classList' in doc.body;
 
 	// zeptojs
-	Dom = function(dom, selector) {
+	var Dom = function(dom, selector) {
 		dom = dom || [];
 		dom.__proto__ = Dom.fn;
 		dom.selector = selector || '';
@@ -275,7 +275,6 @@
 	// 	}
 	// }
 
-	thin.$ = Dom.$;
-	thin.dom = Dom;
+	thin.dom = thin.$ = Dom.$;
 
 }())
