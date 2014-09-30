@@ -90,6 +90,53 @@
 				elem = elem.parentNode;
 			}
 		},
+		prev: function(elem) {
+			if (elem.previousElementSibling) {
+				return elem.previousElementSibling;
+			}
+			while (elem = elem.previousSibling) {
+				if (elem.nodetype === 1) return elem.previousSibling;
+			}
+		},
+		next: function(elem) {
+			if (elem.nextElementSibling) {
+				return elem.nextElementSibling;
+			}
+			while (elem = elem.nextSibling) {
+				if (elem.nodetype === 1) return elem.nextSibling;
+			}
+		},
+		first: function(elem) {
+			if (elem.firstElementChild) {
+				return elem.firstElementChild;
+			}
+			while (elem = elem.firstChild) {
+				if (elem.nodetype === 1) return elem.firstChild;
+			}
+		},
+		last: function(elem) {
+			if (elem.lastElementChild) {
+				return elem.lastElementChild;
+			}
+			while (elem = elem.lastChild) {
+				if (elem.nodetype === 1) return elem.lastChild;
+			}
+		},
+		children: function(elem) {
+			if (elem.children) {
+				return thin.makeArray(elem.children);
+			}
+			return [];
+		},
+		parent: function(elem) {
+			if (elem.parentElement) {
+				return elem.parentElement;
+			}
+			while (elem = elem.parentNode) {
+				if (elem.nodetype === 1) return elem.parentNode;
+			}
+		},
+
 		/**
 		 * @param {elem} 
 		 * @param {selector}
@@ -131,9 +178,7 @@
 					return false;
 				}
 			}
-		},
-		// 复制当前节点，或者复制当前节点及所有子孙节点
-		cloneNode: function() {}
+		}
 	}
 
 	thin.dom = Dom;
