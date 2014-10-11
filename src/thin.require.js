@@ -6,7 +6,27 @@
 
 	var basePath;
 	
-	var getBasePath = function() {
+	var Module = function() {
+		this.id = ''
+		this.deps = '',
+		this.factory = ''
+	}
+
+	Module.status = {
+		LOADING: 0,
+		LOADED: 1
+	}
+
+	win.require = thin.require = function(list, factory) {
+
+	}
+	
+	win.define = thin.define = function(id, deps, factory) {
+
+	}
+
+	// 获取加载器的路径地址
+	function getBasePath() {
 		var scripts, script,
 			len, 
 			i = 0;
@@ -23,7 +43,4 @@
 		return script.src || script.getAttribute('src', 4);
 	}
 
-	thin.require = {
-
-	}
 }());
