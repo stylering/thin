@@ -5,16 +5,22 @@
 	var thin = win.thin || (win.thin = {});
 
 	var basePath;
+	
+	var getBasePath = function() {
+		var scripts, script,
+			len, 
+			i = 0;
 
-	var getCurrentScript = function() {
-		var nodes = doc.scripts;
-		var len = nodes.length;
-		var node;
-		while (node = nodes[--len]) {
-			if (node.readyState === 'interactive' || node.readyState === 'complete') {
-				return node.src;
+		scripts = doc.getElementsByTagName('script');
+		len = scripts.length;
+		if (window.VBArray) {	// for low IE
+			for (; script=scripts[--len]; ) {
+				if (script.readyState === 'interactive') break;
 			}
+		} else {
+			script = scripts[len - 1];
 		}
+		return script.src || script.getAttribute('src', 4);
 	}
 
 	thin.require = {
