@@ -5,6 +5,16 @@
 	<title>模块加载</title>
 	<script src="../src/thin.core.js"></script>
 	<script src="../src/thin.require.js"></script>
+	<script type="text/javascript">
+	(function(argument) {
+		thin.config({
+			alias: {
+				'jquery': './jquery.js'
+			},
+			data: ['a', 'b', 'c']
+		})
+	}())
+	</script>
 </head>
 
 <body>

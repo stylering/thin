@@ -1,29 +1,65 @@
 (function(){
 
-	var win = window;
-	var doc = document;
-	var thin = win.thin || (win.thin = {});
+	var win = window,
+		doc = document,
+		thin = win.thin || (win.thin = {});
 
-	var basePath;
+	var rmakeid = /(#.+|\W)/g,			// url生成序列号作为命名空间
+		rAbsolutePath = /^\/\/.|:\//,	// 判断绝对路径
+		rRootPath = /^.*?\/\/.*?\//,	// 判断根目录
+		rBasePath = /(^.*\/).*$/,		// 解析url；http://localhost/scripts/require.html ==> http://localhost/script/demo/
+		rSingleDot = /\/\.\//g, 		// 解析路径 /a/./b/ ==> /a/b/
+		rMultiDot = /\/[^/]+\/\.\.\//,	// 解析路径 /a/../b ==> /a/b/
+		rMultiSlash = /([^:/])\/+/g; 	// 解析路径 /a///b/ ==> /a//b/ ==> /a/b/
+
+	var basePath = getCurrentPath().match(rBasePath)[1];
 	var head = doc.head || doc.getElementsByTagName('head')[0];
 
-	/*需要用到的正则表达式
-	 */
-	
-	// url生成序列号作为命名空间
-	var rmakeid = /(#.+|\W)/;
+	// 自定义选项配置，配置别名等
+	var config = thin.config = function(configData) {
+		var key, k;
+		for (key in configData) {
+			var newData = configData[key];
+			var curData = config[key];
 
-	var Module = function() {
-		this.id = ''
-		this.deps = '',
-		this.factory = ''
+			if (curData && thin.isObject(newData)) {
+				for (k in newData) {
+					curData[k] = newData[k];
+				}
+			} else {
+				if (thin.isArray(curData)) {
+					newData = curData.concat(newData);
+				} else if (key === 'base') {
+					newData = setBasePath(newData)
+				}
+				config[key] = newData;
+			}
+		}
+	}
+	config.alias = {};
+
+	function Module(uri, deps) {
+		this.uri = uri;
+		this.deps = deps || [];
+		this.depsModule = {};
+		this.status = 0;
 	}
 
+	// 模块状态
 	Module.status = {
-		LOADING: 0,
-		LOADED: 1,
-		EXECUTING: 2,
-		EXECUTED: 3 
+		LOADING: 1,
+		LOADED: 2,
+		EXECUTING: 3,
+		EXECUTED: 4 
+	}
+
+	Module.getModule = function() {
+
+	}
+
+
+	Module.prototype.load = function() {
+
 	}
 
 	win.require = thin.require = function(list, factory) {
@@ -32,6 +68,50 @@
 	
 	win.define = thin.define = function(id, deps, factory) {
 
+	}
+
+	function setBasePath(uri) {
+		return parsePath(uri).match(rBasePath)[1];
+	}
+
+	// 对uri进行处理，返回uri的真实路径
+	function parsePath(id) {
+		var ret, first, rootPath;
+		
+		if (thin.config.alias[id]) {	// 已经配置别名
+			if (typeof ret === 'object') {
+				ret = ret.src;
+			}
+			return ret = thin.config.alias[id];
+		}
+
+		first = id.charAt(0);
+		if (rAbsolutePath.test(id)) {	// 绝对路径
+			ret = id;
+		} else if (first === '.') {	// 相对路径
+			ret = basePath + id;
+		} else if (first === '/') { // 根路径
+			rootPath = basePath.match(rRootPath);
+			ret = rootPath ? rootPath[0] + id.substring(1) : id;
+		} else {
+			ret = basePath + id;
+		}
+		return realPath(ret);
+	}
+	// 对特殊的uri进行处理
+	// /a/./b/  ==> /a/b/
+	// /a/../b/ ==> /a/b/
+	// /a////b/ ==> /a/b/
+	function realPath(uri) {
+		uri = uri.replace(rSingleDot, '/').replace(rMultiSlash, '$1/');
+		while(uri.match(rMultiDot)) {
+			uri = uri.replace(rMultiDot, '/');
+		}
+		// 文件名加上.js/.css后缀名
+		if (!/\.(js|css)$/.test(uri)) {
+			uri += '.js';
+		}
+		return uri;
 	}
 
 	// 加载js和css资源文件
