@@ -7,13 +7,16 @@
 	var rmakeid = /(#.+|\W)/g,			// url生成序列号作为命名空间
 		rAbsolutePath = /^\/\/.|:\//,	// 判断绝对路径
 		rRootPath = /^.*?\/\/.*?\//,	// 判断根目录
-		rBasePath = /(^.*\/).*$/,		// 解析url；http://localhost/scripts/require.html ==> http://localhost/script/demo/
+		rDirName =  /[^?#]*\//,		// 解析url；http://localhost/scripts/require.html ==> http://localhost/script/demo/
 		rSingleDot = /\/\.\//g, 		// 解析路径 /a/./b/ ==> /a/b/
 		rMultiDot = /\/[^/]+\/\.\.\//,	// 解析路径 /a/../b ==> /a/b/
-		rMultiSlash = /([^:/])\/+/g; 	// 解析路径 /a///b/ ==> /a//b/ ==> /a/b/
+		rMultiSlash = /([^:/])\/+/g, 	// 解析路径 /a///b/ ==> /a//b/ ==> /a/b/
+		rWord = /[^, ]+/g; 				// 不等于逗号与空格的字符过滤
 
-	var basePath = getCurrentPath().match(rBasePath)[1];
-	var head = doc.head || doc.getElementsByTagName('head')[0];
+	var basePath = getCurrentPath().match(rDirName)[0],
+		basedir = location.href.match(rDirName)[0],
+		head = doc.head || doc.getElementsByTagName('head')[0],
+		_uid = 0;
 
 	// 自定义选项配置，配置别名等
 	var config = thin.config = function(configData) {
@@ -38,10 +41,13 @@
 	}
 	config.alias = {};
 
-	function Module(uri, deps) {
+	var cacheModules = {};
+
+	function Module(uri, deps, factory) {
 		this.uri = uri;
 		this.deps = deps || [];
-		this.depsModule = {};
+		this.depsMods = {};
+		this.factory = factory;
 		this.status = 0;
 	}
 
@@ -53,25 +59,59 @@
 		EXECUTED: 4 
 	}
 
-	Module.getModule = function() {
+	Module.load = function() {
 
 	}
 
+	Module.getModule = function(id, deps, factory) {
+		return cacheModules[id] || (cacheModules[id] = new Module(id, deps, factory));
+	}
+
+	Module.prototype.parseUri = function() {
+		var mod = this,
+			deps = mod.deps,
+			i = 0, len = deps.length,
+			uris = [];
+		for (; i<len; i++) {
+			uris.push(parsePath(deps[i]));
+		}
+		return uris;
+	}
 
 	Module.prototype.load = function() {
-
+		var mod = this,
+			uris = mod.parseUri(),
+			i = 0,
+			len = uris.length;
+		
+		for (; i<len; i++) {
+			mod.depsMods[mod.deps[i]] = Module.getModule(uris[i]);
+		}
+		for (; i<len; i++) {
+			var m = cacheModules[uris[i]];
+		}
+		
 	}
 
-	win.require = thin.require = function(list, factory) {
+	win.require = thin.require = function(deps, factory, parent) {
+		var id, mod;
 
+		id = parent || basedir + '_require_' + uid();
+		deps = thin.isArray(deps) ? deps : [deps];
+		mod = Module.getModule(id, deps, factory);
+		mod.load();
 	}
 	
 	win.define = thin.define = function(id, deps, factory) {
 
 	}
 
+	function uid() {
+		return _uid++;
+	}
+
 	function setBasePath(uri) {
-		return parsePath(uri).match(rBasePath)[1];
+		return parsePath(uri).match(rDirName)[0];
 	}
 
 	// 对uri进行处理，返回uri的真实路径
@@ -88,6 +128,8 @@
 		first = id.charAt(0);
 		if (rAbsolutePath.test(id)) {	// 绝对路径
 			ret = id;
+		} else if (first !== '.' && first !== '/') {
+			ret = basePath + id;
 		} else if (first === '.') {	// 相对路径
 			ret = basePath + id;
 		} else if (first === '/') { // 根路径
@@ -96,6 +138,7 @@
 		} else {
 			ret = basePath + id;
 		}
+
 		return realPath(ret);
 	}
 	// 对特殊的uri进行处理
