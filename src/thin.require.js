@@ -48,17 +48,18 @@
 		this.deps = deps || [];
 		this.depsMods = {};
 		this.factory = factory;
+		this.exports = {};
 		this.status = 0;
 	}
 
 	// 模块状态
-	Module.status = {
+	Module.STATUS = {
 		LOADING: 1,
 		LOADED: 2,
 		EXECUTING: 3,
 		EXECUTED: 4 
 	}
-	
+
 	Module.getModule = function(id, deps) {
 		return cacheModules[id] || (cacheModules[id] = new Module(id, deps));
 	}
@@ -79,12 +80,13 @@
 			uris = mod.parseUri(),
 			i, len = uris.length;
 		
+		mod.status = Module.STATUS.LOADING;
 		for (i=0; i<len; i++) {
 			mod.depsMods[mod.deps[i]] = Module.getModule(uris[i]);
 		}
 		for (i=0; i<len; i++) {
 			var m = cacheModules[uris[i]];
-			requestSource(m.uri);
+			request(m.uri);
 			if (m.deps.length) {
 				m.load();
 			}
@@ -177,7 +179,7 @@
 	}
 
 	// 加载js和css资源文件
-	function requestSource(src, callback) {
+	function request(src, callback) {
 		var node;
 
 		if (/.js$/.test(src)) {	// 加载js
