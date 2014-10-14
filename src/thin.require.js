@@ -58,13 +58,9 @@
 		EXECUTING: 3,
 		EXECUTED: 4 
 	}
-
-	Module.load = function() {
-
-	}
-
-	Module.getModule = function(id, deps, factory) {
-		return cacheModules[id] || (cacheModules[id] = new Module(id, deps, factory));
+	
+	Module.getModule = function(id, deps) {
+		return cacheModules[id] || (cacheModules[id] = new Module(id, deps));
 	}
 
 	Module.prototype.parseUri = function() {
@@ -81,29 +77,52 @@
 	Module.prototype.load = function() {
 		var mod = this,
 			uris = mod.parseUri(),
-			i = 0,
-			len = uris.length;
+			i, len = uris.length;
 		
-		for (; i<len; i++) {
+		for (i=0; i<len; i++) {
 			mod.depsMods[mod.deps[i]] = Module.getModule(uris[i]);
 		}
-		for (; i<len; i++) {
+		for (i=0; i<len; i++) {
 			var m = cacheModules[uris[i]];
+			requestSource(m.uri);
+			if (m.deps.length) {
+				m.load();
+			}
 		}
-		
 	}
 
-	win.require = thin.require = function(deps, factory, parent) {
+	win.require = thin.require = function(deps, factory) {
 		var id, mod;
 
-		id = parent || basedir + '_require_' + uid();
+		id = basedir + '_require_' + uid();
 		deps = thin.isArray(deps) ? deps : [deps];
-		mod = Module.getModule(id, deps, factory);
+		mod = Module.getModule(id, deps);
+		mod.factory = factory;
 		mod.load();
 	}
 	
 	win.define = thin.define = function(id, deps, factory) {
+		var args, len,
+			mod;
 
+		args = Array.prototype.slice.apply(arguments);
+		len = args.length;
+
+		if (len === 1) {
+			factory = id;
+		} else if (len === 2) {
+			factory = deps;
+			deps = id;
+		}
+		deps = deps || [];
+		id = id ? parsePath(id) : getCurrentPath();
+		
+		mod = Module.getModule(id);
+		mod.uri = id;
+		mod.deps = deps;
+		mod.factory = factory;
+
+		// mod.load();
 	}
 
 	function uid() {
@@ -158,16 +177,16 @@
 	}
 
 	// 加载js和css资源文件
-	function requestSource(src) {
+	function requestSource(src, callback) {
 		var node;
 
 		if (/.js$/.test(src)) {	// 加载js
-			var onloadSupport = 'onload' in node;
 			node = doc.createElement('script');
+			var onloadSupport = 'onload' in node;
 
 			function onload() {
 				if (onloadSupport || /loaded|complete/i.test(node.readyState)) {
-					console.log('ddddd');
+					// console.log('ddddd');
 				}
 			}
 			onloadSupport ? node.onload = onload : node.onreadystatechange = onload;
