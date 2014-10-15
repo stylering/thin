@@ -50,14 +50,15 @@
 		this.factory = factory;
 		this.exports = {};
 		this.status = 0;
+		this._remain = 0;
+		this._args = [];
 	}
 
 	// 模块状态
-	Module.STATUS = {
+	var STATUS = Module.STATUS = {
 		LOADING: 1,
 		LOADED: 2,
-		EXECUTING: 3,
-		EXECUTED: 4 
+		EXECUTED: 3 
 	}
 
 	Module.getModule = function(id, deps) {
@@ -75,22 +76,60 @@
 		return uris;
 	}
 
+	Module.prototype.execute = function() {
+		var mod = this;
+
+		var pMod = mod.parentMod;
+		mod.exports = mod.factory();
+		while (pMod) {
+			pMod._remain--;
+			pMod._args.push(mod.exports);
+			if (pMod._remain === 0) {
+				pMod.exports = pMod.factory.apply(pMod._args);
+				console.log(pMod.exports);
+			}
+			pMod = pMod.parentMod;
+		}
+	}
+
 	Module.prototype.load = function() {
 		var mod = this,
 			uris = mod.parseUri(),
 			i, len = uris.length;
-		
-		mod.status = Module.STATUS.LOADING;
-		for (i=0; i<len; i++) {
-			mod.depsMods[mod.deps[i]] = Module.getModule(uris[i]);
-		}
-		for (i=0; i<len; i++) {
-			var m = cacheModules[uris[i]];
-			request(m.uri);
-			if (m.deps.length) {
-				m.load();
+
+		if (len) {
+			for (i=0; i<len; i++) {
+				mod.depsMods[mod.deps[i]] = Module.getModule(uris[i]);
+				var m = cacheModules[uris[i]];
+				var callback = function(){}
+				m.status = STATUS.LOADING;
+				m.parentMod = mod;
+				mod._remain++;
+				request(m.uri, callback);
 			}
+		} else {
+			mod.execute();
 		}
+
+
+		// for (i=0; i<len; i++) {
+		// 	mod.depsMods[mod.deps[i]] = Module.getModule(uris[i]);
+		// 	var m = cacheModules[uris[i]];
+		// 	var exports = [];
+		// 	var callback = function() {
+		// 		if (m.deps.length) {
+		// 			m.load();
+		// 		} else {
+		// 			m.exports = m.factory();
+		// 			exports.push(m.exports);
+		// 			if (exports.length === len) {
+		// 				mod.exports = mod.factory.apply(exports);
+		// 			}
+		// 		}
+		// 	}nj
+		// 	console.log(mod);
+		// 	request(m.uri, callback);
+		// }
 	}
 
 	win.require = thin.require = function(deps, factory) {
@@ -100,6 +139,7 @@
 		deps = thin.isArray(deps) ? deps : [deps];
 		mod = Module.getModule(id, deps);
 		mod.factory = factory;
+		mod.status = STATUS.LOADING;
 		mod.load();
 	}
 	
@@ -114,17 +154,16 @@
 			factory = id;
 		} else if (len === 2) {
 			factory = deps;
-			deps = id;
+			thin.isString(id) ? deps = [] : deps = id;
 		}
-		deps = deps || [];
+
 		id = id ? parsePath(id) : getCurrentPath();
-		
 		mod = Module.getModule(id);
 		mod.uri = id;
 		mod.deps = deps;
 		mod.factory = factory;
-
-		// mod.load();
+		mod.status = Module.STATUS.LOADED;
+		mod.load();
 	}
 
 	function uid() {
@@ -188,7 +227,7 @@
 
 			function onload() {
 				if (onloadSupport || /loaded|complete/i.test(node.readyState)) {
-					// console.log('ddddd');
+					callback();
 				}
 			}
 			onloadSupport ? node.onload = onload : node.onreadystatechange = onload;
