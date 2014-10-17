@@ -51,14 +51,15 @@
 		this.exports = {};
 		this.status = 0;
 		this._remain = 0;
-		this._args = [];
+		this._entry = [];
 	}
 
 	// 模块状态
 	var STATUS = Module.STATUS = {
 		LOADING: 1,
 		LOADED: 2,
-		EXECUTED: 3 
+		EXECUTING: 3,
+		EXECUTED: 4
 	}
 
 	Module.getModule = function(id, deps) {
@@ -92,44 +93,49 @@
 		}
 	}
 
+	Module.prototype.pass = function() {
+		var mod = this;
+		var len = mod.deps.length;
+		var count = 0;
+		
+		for (var i=0, l=mod._entry.length; i<l; i++) {
+			for (var j=0; j<len; j++) {		
+				var m = mod.depsMods[mod.deps[j]];
+				if (m.status < STATUS.LOADED) {
+					count++;
+					m._entry.push(mod._entry[i])
+				}
+			}
+			if (count > 0) {
+			  entry.remain += count - 1
+			  mod._entry.shift()
+			  i--
+			}
+		}
+	}
+
 	Module.prototype.load = function() {
 		var mod = this,
 			uris = mod.parseUri(),
 			i, len = uris.length;
 
+		if (mod.status > STATUS.LOADING) return;
+		mod.status = STATUS.LOADING;
+
 		if (len) {
 			for (i=0; i<len; i++) {
 				mod.depsMods[mod.deps[i]] = Module.getModule(uris[i]);
-				var m = cacheModules[uris[i]];
-				var callback = function(){}
-				m.status = STATUS.LOADING;
-				m.parentMod = mod;
-				mod._remain++;
-				request(m.uri, callback);
 			}
+			mod.pass();
+			// var m = cacheModules[uris[i]];
+			// var callback = function(){}
+			// m.status = STATUS.LOADING;
+			// m.parentMod = mod;
+			// mod._remain++;
+			// request(m.uri, callback);
 		} else {
 			mod.execute();
 		}
-
-
-		// for (i=0; i<len; i++) {
-		// 	mod.depsMods[mod.deps[i]] = Module.getModule(uris[i]);
-		// 	var m = cacheModules[uris[i]];
-		// 	var exports = [];
-		// 	var callback = function() {
-		// 		if (m.deps.length) {
-		// 			m.load();
-		// 		} else {
-		// 			m.exports = m.factory();
-		// 			exports.push(m.exports);
-		// 			if (exports.length === len) {
-		// 				mod.exports = mod.factory.apply(exports);
-		// 			}
-		// 		}
-		// 	}nj
-		// 	console.log(mod);
-		// 	request(m.uri, callback);
-		// }
 	}
 
 	win.require = thin.require = function(deps, factory) {
@@ -139,7 +145,7 @@
 		deps = thin.isArray(deps) ? deps : [deps];
 		mod = Module.getModule(id, deps);
 		mod.factory = factory;
-		mod.status = STATUS.LOADING;
+		mod._entry.push(mod);
 		mod.load();
 	}
 	
