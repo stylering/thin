@@ -41,16 +41,14 @@
 	}
 	config.alias = {};
 
-	var cacheModules = {};
+	var cacheModules = {};	// 缓存加载过的module
+	var requestUris = [];	// 需要加载的module uri
 
-	function Module(uri, deps, factory) {
-		this.uri = uri;
+	function Module(id, deps) {
+		this.id = id;
 		this.deps = deps || [];
 		this.depsMods = {};
-		this.factory = factory;
-		this.exports = [];
 		this.status = 0;
-		this._entry = [];
 	}
 
 	// 模块状态
@@ -66,68 +64,79 @@
 		return cacheModules[id] || (cacheModules[id] = new Module(id, deps));
 	}
 
-	Module.prototype.parseUri = function() {
-		var mod = this,
-			deps = mod.deps,
-			i = 0, len = deps.length,
-			uris = [];
-		for (; i<len; i++) {
-			uris.push(parsePath(deps[i]));
-		}
-		return uris;
-	}
-
-	Module.prototype.pass = function() {
-		var mod = this;
-		var len = mod.deps.length;
-		var count = 0;
-		
-		for (var i=0; i<mod._entry.length; i++) {
-			var entry = mod._entry[i];
-			for (var j=0; j<len; j++) {		
-				var m = mod.depsMods[mod.deps[j]];
-				if (m.status < STATUS.LOADED) {
-					count++;
-					m._entry.push(entry);
+	Module.checkDeps = function() {
+		loop: for (var i=0; i<requestUris.length; i++) {
+			var mod = cacheModules[requestUris[i]];
+			for (var key in mod.depsMods) {
+				console.log(cacheModules)
+				if (mod.depsMods.hasOwnProperty(key) && cacheModules[key].status < STATUS.EXECUTED) {
+					continue loop;
 				}
 			}
-			if (count > 0) {
-			  entry._remain += count - 1;
-			  mod._entry.shift();
-			  i--
+			if (mod.status < STATUS.EXECUTED) {
+				requestUris.splice(i, 1);
+				mod.exec();
+				Module.checkDeps();
 			}
 		}
 	}
 
-	Module.prototype.onload = function() {
-		var mod = this;
-		mod.status = STATUS.LOADED;
-		for (var i=0, len=mod._entry.length; i<len; i++) {
-			var entry = mod._entry[i];
-			if (--entry._remain === 0) {
-				entry._callback();
-			}
+	Module.parseUris = function(uris) {
+		var ret = [];
+		uris = uris ? (thin.isArray(uris) ? uris : [uris]) : [];
+		for (var i=0, len=uris.length; i<len; i++) {
+			ret.push(parsePath(uris[i]));
 		}
-		delete mod._entry;
+		return ret;
+	}
+
+	// ['a', 'b'] ==> ['http://localhost/script/a.js', 'http://localhost/script/b.js']
+	Module.prototype.parseUris = function() {
+		return Module.parseUris(this.deps);
+	}
+
+	Module.prototype.exec = function() {
+
+		var mod = this;
+		var len = mod.deps.length;
+		
+		mod.status = STATUS.EXECUTING;
+		var exports = [];
+
+		for (var i=0; i<len; i++) {
+			exports.push( cacheModules[mod.deps[i]].exports);
+		}
+		mod.factory.apply(exports);
+	}
+
+	Module.prototype.fetching = function() {
+		var mod = this;
+
+		var id = mod.id;
+
+		var onRequest = function() {
+			mod.load();
+		}
+
+		request(mod.id, onRequest);		
 	}
 
 	Module.prototype.load = function() {
 		var mod = this,
-			uris = mod.parseUri(),
+			uris = mod.parseUris(),
 			i, j, len = uris.length;
 
-		if (mod.status > STATUS.LOADING) return;
+		if (mod.status > STATUS.LOADING) {
+			return;
+		}
 		mod.status = STATUS.LOADING;
+		requestUris.push(mod.id);
 
 		for (i=0; i<len; i++) {
 			mod.depsMods[mod.deps[i]] = Module.getModule(uris[i]);
 		}
 
-		mod.pass();
-
-		if (mod._entry.length) {
-			mod.onload();
-		}
+		Module.checkDeps();
 
 		for (j=0; j<len; j++) {
 			var m = cacheModules[uris[j]];
@@ -135,64 +144,13 @@
 		}
 	}
 
-	Module.prototype.fetching = function() {
-		var mod = this;
-
-		var uri = mod.uri;
-
-		var onRequest = function() {
-			console.log('onRequest')
-			mod.load();
-		}
-
-		request(mod.uri, onRequest);		
-	}
-
-	Module.prototype.exec = function() {
-		
-		var mod = this;
-		var len = mod.deps.length;
-		var 
-		mod.status = STATUS.EXECUTING;
-
-		if (len) {
-			for (var i=0; i<len; i++) {
-
-			}
-		} else {
-			mod.exports.push(mod.factory())
-			mod.status = STATUS.EXECUTED;
-		}
-
-		
-		return mod.exports;		
-	}
-
 	win.require = thin.require = function(deps, factory) {
 		var id, mod;
 
 		id = basedir + '_require_' + uid();
-		deps = thin.isArray(deps) ? deps : [deps];
-
+		deps = Module.parseUris(deps);
 		mod = Module.getModule(id, deps);
-		mod._entry.push(mod);
-		mod._remain = 1;
-
-		mod._callback = function() {
-			var uris = mod.parseUri();
-			var exports = [];
-			for (var i = 0, len = uris.length; i < len; i++) {
-			  exports[i] = cacheModules[uris[i]].exec()
-			}
-
-			if (factory) {
-			  factory.apply(win, exports)
-			}
-
-			delete mod._callback
-			delete mod._remain
-			delete mod._entry
-		}
+		mod.factory = factory;
 		mod.load();
 	}
 	
@@ -213,7 +171,7 @@
 		id = id ? parsePath(id) : getCurrentPath();
 		mod = Module.getModule(id);
 		mod.uri = id;
-		mod.deps = deps;
+		mod.deps = mod.parseUris();
 		mod.factory = factory;
 		mod.status = STATUS.SAVED;
 	}
