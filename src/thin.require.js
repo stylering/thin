@@ -13,8 +13,8 @@
 		rMultiSlash = /([^:/])\/+/g, 	// 解析路径 /a///b/ ==> /a//b/ ==> /a/b/
 		rWord = /[^, ]+/g; 				// 不等于逗号与空格的字符过滤
 
-	var basePath = getCurrentPath().match(rDirName)[0],
-		basedir = location.href.match(rDirName)[0],
+	var basedir = location.href.match(rDirName)[0],
+		basePath = basedir,
 		head = doc.head || doc.getElementsByTagName('head')[0],
 		_uid = 0;
 
@@ -205,7 +205,7 @@
 	}
 
 	function setBasePath(uri) {
-		return parsePath(uri).match(rDirName)[0];
+		return basePath = parsePath(uri).match(rDirName)[0];
 	}
 
 	// 对uri进行处理，返回uri的真实路径
@@ -218,7 +218,7 @@
 			}
 			return ret = thin.config.alias[id];
 		}
-
+		// id = id.substr(0, id.lastIndexOf('/'));
 		first = id.charAt(0);
 		if (rAbsolutePath.test(id)) {	// 绝对路径
 			ret = id;
