@@ -1,4 +1,4 @@
-define('a', ['b', 'c'], function(b, c) {
+define('a', ['b'], function(b) {
 	console.log('a.js');
 	return {
 		afun1: function() {

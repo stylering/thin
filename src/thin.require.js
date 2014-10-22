@@ -56,25 +56,24 @@
 		SAVED: 1,
 		LOADING: 2,
 		LOADED: 3,
-		EXECUTING: 4,
-		EXECUTED: 5
+		EXECUTED: 4
 	}
 
 	Module.getModule = function(id, deps) {
 		return cacheModules[id] || (cacheModules[id] = new Module(id, deps));
 	}
-
+	// 检查模块的依赖
 	Module.checkDeps = function() {
 		loop: for (var i=0; i<requestUris.length; i++) {
 			var mod = cacheModules[requestUris[i]];
 			for (var key in mod.depsMods) {
-				console.log(cacheModules)
 				if (mod.depsMods.hasOwnProperty(key) && cacheModules[key].status < STATUS.EXECUTED) {
 					continue loop;
 				}
 			}
 			if (mod.status < STATUS.EXECUTED) {
 				requestUris.splice(i, 1);
+				mod.status = STATUS.LOADED;
 				mod.exec();
 				Module.checkDeps();
 			}
@@ -95,24 +94,24 @@
 		return Module.parseUris(this.deps);
 	}
 
+	// 模块执行
 	Module.prototype.exec = function() {
 
 		var mod = this;
 		var len = mod.deps.length;
 		
-		mod.status = STATUS.EXECUTING;
 		var exports = [];
 
 		for (var i=0; i<len; i++) {
 			exports.push( cacheModules[mod.deps[i]].exports);
 		}
-		mod.factory.apply(exports);
+		mod.exports = mod.factory.apply(win, exports);
+		mod.status = STATUS.EXECUTED;
 	}
 
-	Module.prototype.fetching = function() {
+	// 请求模块
+	Module.prototype.request = function() {
 		var mod = this;
-
-		var id = mod.id;
 
 		var onRequest = function() {
 			mod.load();
@@ -121,12 +120,13 @@
 		request(mod.id, onRequest);		
 	}
 
+	// 加载模块
 	Module.prototype.load = function() {
 		var mod = this,
 			uris = mod.parseUris(),
 			i, j, len = uris.length;
 
-		if (mod.status > STATUS.LOADING) {
+		if (mod.status >= STATUS.LOADING) {
 			return;
 		}
 		mod.status = STATUS.LOADING;
@@ -136,14 +136,34 @@
 			mod.depsMods[mod.deps[i]] = Module.getModule(uris[i]);
 		}
 
-		Module.checkDeps();
-
 		for (j=0; j<len; j++) {
 			var m = cacheModules[uris[j]];
-			m.fetching();
+
+			if (m.status < STATUS.SAVED) {
+				m.request();
+			} else if (m.status === STATUS.LOADED){
+				m.exec();
+			}
+		}
+
+		Module.checkDeps();
+	}
+
+	// 检测是否存在循环依赖
+	Module.prototype.checkCircleDeps = function(id) {
+
+		var mod = this,
+			deps = mod.deps;
+
+		for (var i=0, len=deps.length; i<len; i++) {
+			var m = cacheModules[deps[i]];
+			if (m && (m.id === id || m.deps.length && m.checkCircleDeps(id))) {
+				return true;
+			}
 		}
 	}
 
+	// 初始请求
 	win.require = thin.require = function(deps, factory) {
 		var id, mod;
 
@@ -154,6 +174,7 @@
 		mod.load();
 	}
 	
+	// 模块定义
 	win.define = thin.define = function(id, deps, factory) {
 		var args, len,
 			mod;
@@ -170,10 +191,13 @@
 
 		id = id ? parsePath(id) : getCurrentPath();
 		mod = Module.getModule(id);
-		mod.uri = id;
-		mod.deps = mod.parseUris();
+		mod.deps = Module.parseUris(deps);
 		mod.factory = factory;
 		mod.status = STATUS.SAVED;
+		// 检测循环依赖
+		if (mod.checkCircleDeps(mod.id)) {
+			throw new Error(mod.id + '模块与之前的模块存在循环依赖');
+		}
 	}
 
 	function uid() {
