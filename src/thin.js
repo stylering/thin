@@ -200,7 +200,7 @@
 		loop: for (var i=0; i<requestUris.length; i++) {
 			var mod = cacheModules[requestUris[i]];
 			for (var key in mod.depsMods) {
-				if (mod.depsMods.hasOwnProperty(key) && cacheModules[key].status < STATUS.EXECUTED) {
+				if (mod.depsMods.hasOwnProperty(key) && cacheModules[mod.depsMods[key].id].status < STATUS.EXECUTED) {
 					continue loop;
 				}
 			}
@@ -231,12 +231,12 @@
 	Module.prototype.exec = function() {
 
 		var mod = this;
-		var len = mod.deps.length;
+		var uris = mod.parseUris();
 		
 		var exports = [];
 
-		for (var i=0; i<len; i++) {
-			exports.push( cacheModules[mod.deps[i]].exports);
+		for (var i=0, len=uris.length; i<len; i++) {
+			exports.push(cacheModules[uris[i]].exports);
 		}
 		mod.exports = mod.factory.apply(global, exports);
 		mod.status = STATUS.EXECUTED;
@@ -298,10 +298,14 @@
 
 	// 初始请求
 	global.require = thin.require = function(deps, factory) {
-		var id, mod;
+		var id, mod,
+			depsArray = [];
 
 		id = basedir + '_require_' + uid();
-		deps = Module.parseUris(deps);
+		// deps = Module.parseUris(deps);
+		if (thin.isString(deps)) {
+			deps = deps.replace(/\s*/g, '').split(',');
+		}
 		mod = Module.getModule(id, deps);
 		mod.factory = factory;
 		mod.load();
@@ -346,10 +350,10 @@
 		var ret, first, rootPath;
 		
 		if (thin.config.alias[id]) {	// 已经配置别名
-			if (typeof ret === 'object') {
+			ret = thin.config.alias[id];
+			if (thin.isObject(ret)) {
 				ret = ret.src;
 			}
-			return ret = thin.config.alias[id];
 		}
 		// id = id.substr(0, id.lastIndexOf('/'));
 		first = id.charAt(0);
@@ -357,15 +361,17 @@
 			ret = id;
 		} else if (first !== '.' && first !== '/') {
 			ret = basePath + id;
-		} else if (first === '.') {	// 相对路径
+		} else if (id.slice(0, 2) === './') {	// 相对路径
 			ret = basePath + id;
+		} else if (id.slice(0, 2) === '..') {	// 父路径
+			ret = basedir + id;
 		} else if (first === '/') { // 根路径
 			rootPath = basePath.match(rRootPath);
 			ret = rootPath ? rootPath[0] + id.substring(1) : id;
 		} else {
 			ret = basePath + id;
 		}
-
+		
 		return realPath(ret);
 	}
 	// 对特殊的uri进行处理
@@ -381,7 +387,6 @@
 		if (!/\.(js|css)$/.test(uri)) {
 			uri += '.js';
 		}
-		console.log(uri)
 		return uri;
 	}
 
