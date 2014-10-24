@@ -1,8 +1,6 @@
-(function(){
+define('util', function(){
 
-	var win = window;
 	var doc = document;
-	var thin = win.thin || (win.thin = {});
 
 	thin.util = {
 		/**
@@ -71,4 +69,4 @@
 			return matchesSelector ? w3cMatches : ieMatches;			
 		}())
 	}
-}());
+});

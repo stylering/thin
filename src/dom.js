@@ -2,9 +2,11 @@ define('dom', function() {
 
 	var doc = document;
 
-	var idRegExp = /^#[\w-]*$/;
-	var tagNameRegExp = /^[\w]+$/;
-	var classNameRegExp = /^\.[\w-]+/;
+	var rId = /^#[\w-]*$/;			// id
+	var rTagName = /^[\w]+$/;		// html标签
+	var rClassName = /^\.[\w-]+/;	// css class 类名
+	var rTrim = /^\s*|\s*$/;		// 去除空格
+
 	// 检测是否支持classList属性
 	isSupportClassList = 'classList' in doc.body;
 
@@ -24,15 +26,15 @@ define('dom', function() {
 		var result;
 
 		if (!thin.isString(selector)) result = [];
-		selector = thin.util.trim(selector);
+		selector = selector.replace(rTrim, '');
 		context = context || doc;
 
-		if (idRegExp.test(selector)) {
+		if (rId.test(selector)) {
 			selector = selector.replace('#', '');
 			return [doc.getElementById(selector)];
-		} else if (tagNameRegExp.test(selector)) {
+		} else if (rTagName.test(selector)) {
 			result = context.getElementsByTagName(selector);
-		} else if (classNameRegExp.test(selector)) {
+		} else if (rClassName.test(selector)) {
 			var tags, i, len, elements = [];
 			selector = selector.replace('\.', '');
 			if (context.getElementsByClassName) {
@@ -61,12 +63,11 @@ define('dom', function() {
 			// selector为字符串时
 			// id className tagName and other tags
 			if (thin.isString(selector)) {
-				selector = thin.util.trim(selector);
+				selector = selector.replace(rTrim, '');
 				dom = Dom.query(selector, context);
 			}
 
 			// 为thin Dom对象时
-
 			return Dom(dom, selector);
 		},
 

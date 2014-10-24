@@ -5,11 +5,11 @@
  * @version: 1.0.0
  * @author: stylering
  */
-(function(){
 
-	var win = window;
+define('event', function() {
+
 	var doc = document;
-	var thin = win.thin || (win.thin = {});
+	
 	// 标识绑定元素与回调函数的唯一性
 	var _guid = 1;
 	/*缓存绑定的元素、事件、回调、代理函数
@@ -325,4 +325,4 @@
 	});
 
 	thin.event = Event;
-}());
+});

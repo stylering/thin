@@ -148,7 +148,8 @@
 	var basedir = location.href.match(rDirName)[0],
 		basePath = basedir,
 		head = doc.head || doc.getElementsByTagName('head')[0],
-		_uid = 0;
+		_uid = 0,
+		allMods = 'dom event http mvc platform router support touch util';
 
 	// 自定义选项配置，配置别名等
 	var config = thin.config = function(configData) {
@@ -337,6 +338,10 @@
 		}
 	}
 
+	allMods.replace(/[^\s]+/g, function(m) {
+		config.alias[m] = basePath + m + '.js';
+	});
+
 	function uid() {
 		return _uid++;
 	}
@@ -350,13 +355,14 @@
 		var ret, first, rootPath;
 		
 		if (thin.config.alias[id]) {	// 已经配置别名
-			ret = thin.config.alias[id];
-			if (thin.isObject(ret)) {
-				ret = ret.src;
+			id = thin.config.alias[id];
+			if (thin.isObject(id)) {
+				id = id.src;
 			}
 		}
 		// id = id.substr(0, id.lastIndexOf('/'));
 		first = id.charAt(0);
+
 		if (rAbsolutePath.test(id)) {	// 绝对路径
 			ret = id;
 		} else if (first !== '.' && first !== '/') {
@@ -365,6 +371,7 @@
 			ret = basePath + id;
 		} else if (id.slice(0, 2) === '..') {	// 父路径
 			ret = basedir + id;
+			console.log(ret)
 		} else if (first === '/') { // 根路径
 			rootPath = basePath.match(rRootPath);
 			ret = rootPath ? rootPath[0] + id.substring(1) : id;
@@ -372,7 +379,9 @@
 			ret = basePath + id;
 		}
 		
-		return realPath(ret);
+		ret = realPath(ret);
+
+		return ret;
 	}
 	// 对特殊的uri进行处理
 	// /a/./b/  ==> /a/b/

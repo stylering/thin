@@ -2,11 +2,10 @@
  *
  * author stylering
  */
- 
-(function(){
-	var win = window;
+
+define('router', function() {
+
 	var doc = document;
-	var thin = win.thin || (win.thin = {});
 
 	// 参考backbone的正则规则
 	var optionalParam = /\((.*?)\)/g;
@@ -228,6 +227,4 @@
 			return new RegExp('^' + route + '(?:\\?([\\s\\S]*))?$');
 		}
 	}
-
-	thin.router = Router;
-}());
+});

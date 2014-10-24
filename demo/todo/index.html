@@ -10,11 +10,15 @@
 			base: './assets/js/a.js',
 			alias: {
 				'jquery': './jquery.js',
-				'dom': '../../../../src/dom.js'
+				'dom': '../../src/dom.js',
+				'event': '../../src/event.js',
+				'router': '../../src/router.js',
+				'touch': '../../src/touch.js',
+				'util': '../../src/util.js'
 			},
 		})
 
-		require('dom', function(){
+		require('util', function(){
 			 console.log('1111');
 		})
 	}())

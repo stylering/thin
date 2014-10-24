@@ -1,11 +1,6 @@
-/**
- * @description
- * 
- */
-(function(){
-	var win = window;
+define('touch', ['event'], function() {
+
 	var doc = document;
-	var thin = win.thin || (win.thin = {});
 
 	// 全局事件对象
 	var touch = {};
@@ -139,5 +134,4 @@
 			thin.event.on(eventName, elem, callback);
 		}
 	})
-
-}());
+})
