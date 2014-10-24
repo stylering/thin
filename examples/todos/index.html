@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>todos example</title>
+	<link type="text/css" rel="stylesheet" href="./assets/css/normalize.css" />
+	<link type="text/css" rel="stylesheet" href="./assets/css/index.css" />
+</head>
+
+<body>
+	<div id="todoapp">
+		<header>
+			<h1>Todos</h1>
+			<input id="J_newTodo" class="new-todo" type="text" placeholder="请输入你要完成的事项"/>
+		</header>
+		<section class="todo-main">
+			<input id="J_toggleAll" type="checkbox"/>
+			<label for="J_toggleAll">全选</label>
+			<ul id="J_todoList" class="todo-list">
+				<li>
+					<div class="list">
+ 						<input class="toggle" type="checkbox">
+						<div class="todo-item">要做的事项</div>
+						<a class="destroy"></a>
+					</div>
+					<input type="text" class="edit">
+				</li>
+			</ul>
+		</section>
+		<footer>
+			<a id="J_clearCompleted" class="clear-completed">删除1个已完成的事项</a>
+			<div id="j_todoCount" class="todo-count">
+				<b>0</b>个事项未完成
+			</div>
+		</footer>
+	</div>
+
+	<script src="../../src/thin.js"></script>
+</body>
+</html>
