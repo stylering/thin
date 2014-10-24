@@ -1,7 +1,21 @@
 /**
+ * thin Javasript Library
  * 
+ * thin 是一个AMD javascript框架，包含以下模块
+ * 
+ * - 模块加载
+ * - dom操作，类jquery api 操作方式
+ * - 事件系统
+ * - 路由系统
+ * - mvc
+ * 
+ * @author: stylering
+ * 
+ * @date: 2012-10-24
  *
- * @author: leo
+ * @github: https://github.com/stylering/thin
+ * 
+ * @version 1.0.0
  */
 
 (function(global, doc, undefined){
@@ -42,8 +56,8 @@
 	 * 
 	 * forEach 		数据与对象循环
 	 * extend	 	对象扩展
-	 * makeArray 	类数据转换为数据
-	 * domReady 	DOM树加载函数
+	 * toArray 	类数据转换为数据
+	 * ready 	DOM树加载函数
 	 */
 	_extend(thin, {
 
@@ -51,9 +65,9 @@
 
 		extend: _extend,
 
-		makeArray: _makeArray,
+		toArray: _toArray,
 
-		domReady: _domReady
+		ready: _ready
 
 	});
 
@@ -94,11 +108,11 @@
 	}
 
 	// 类数组对象转化为数组对象
-	function _makeArray(a, i, j) {
+	function _toArray(a, i, j) {
 		return Array.prototype.slice.call(a, i || 0, j || j.length);
 	}
 
-	function _domReady(fn) {
+	function _ready(fn) {
 		var isReady = false,
 			arrayFun = [],
 			fireReady;
@@ -121,8 +135,8 @@
 				fireReady();
 			}, false)
 		} else {
-			document.write('<script id="ie-domReady" defer src="\/\/:"></script>');
-			doc.getElementById('ie-domReady').onreadystatechange = function() {
+			document.write('<script id="ie-ready" defer src="\/\/:"></script>');
+			doc.getElementById('ie-ready').onreadystatechange = function() {
 				if (this.readyState === 'complete') {
 					this.onreadystatechange = null;
 					fireReady();
@@ -139,17 +153,23 @@
 	var rmakeid = /(#.+|\W)/g,			// url生成序列号作为命名空间
 		rAbsolutePath = /^\/\/.|:\//,	// 判断绝对路径
 		rRootPath = /^.*?\/\/.*?\//,	// 判断根目录
-		rDirName =  /[^?#]*\//,		// 解析url；http://localhost/scripts/require.html ==> http://localhost/script/demo/
+		rDirName =  /[^?#]*\//,			// 解析url；http://localhost/scripts/require.html ==> http://localhost/scripts/
 		rSingleDot = /\/\.\//g, 		// 解析路径 /a/./b/ ==> /a/b/
 		rMultiDot = /\/[^/]+\/\.\.\//,	// 解析路径 /a/../b ==> /a/b/
 		rMultiSlash = /([^:/])\/+/g, 	// 解析路径 /a///b/ ==> /a//b/ ==> /a/b/
 		rWord = /[^, ]+/g; 				// 不等于逗号与空格的字符过滤
 
-	var basedir = location.href.match(rDirName)[0],
-		basePath = basedir,
+	var loaderPath = doc.getElementById('thin-node') || getCurrentPath(),		// 加载器uri
+		loaderDir = dirName(loaderPath),										// 加载器路径
+		cwd = dirName(location.href),
+		baseDir = loaderDir,
 		head = doc.head || doc.getElementsByTagName('head')[0],
 		_uid = 0,
 		allMods = 'dom event http mvc platform router support touch util';
+
+	function uid() {
+		return _uid++;
+	}
 
 	// 自定义选项配置，配置别名等
 	var config = thin.config = function(configData) {
@@ -166,7 +186,7 @@
 				if (thin.isArray(curData)) {
 					newData = curData.concat(newData);
 				} else if (key === 'base') {
-					newData = setBasePath(newData)
+					newData = setBaseDir(newData)
 				}
 				config[key] = newData;
 			}
@@ -218,7 +238,7 @@
 		var ret = [];
 		uris = uris ? (thin.isArray(uris) ? uris : [uris]) : [];
 		for (var i=0, len=uris.length; i<len; i++) {
-			ret.push(parsePath(uris[i]));
+			ret.push(idToUris(uris[i]));
 		}
 		return ret;
 	}
@@ -302,7 +322,7 @@
 		var id, mod,
 			depsArray = [];
 
-		id = basedir + '_require_' + uid();
+		id = cwd + '_require_' + uid();
 		// deps = Module.parseUris(deps);
 		if (thin.isString(deps)) {
 			deps = deps.replace(/\s*/g, '').split(',');
@@ -327,7 +347,7 @@
 			thin.isString(id) ? deps = [] : deps = id;
 		}
 
-		id = id ? parsePath(id) : getCurrentPath();
+		id = id ? idToUris(id) : getCurrentPath();
 		mod = Module.getModule(id);
 		mod.deps = Module.parseUris(deps);
 		mod.factory = factory;
@@ -339,19 +359,21 @@
 	}
 
 	allMods.replace(/[^\s]+/g, function(m) {
-		config.alias[m] = basePath + m + '.js';
+		config.alias[m] = baseDir + m + '.js';
 	});
 
-	function uid() {
-		return _uid++;
+	// 设置基础路径
+	function setBaseDir(uri) {
+		return baseDir = dirName(idToUris(uri));
 	}
 
-	function setBasePath(uri) {
-		return basePath = parsePath(uri).match(rDirName)[0];
+	// uri转换为路径
+	function dirName(uri) {
+		return uri.match(rDirName)[0];
 	}
 
 	// 对uri进行处理，返回uri的真实路径
-	function parsePath(id) {
+	function idToUris(id) {
 		var ret, first, rootPath;
 		
 		if (thin.config.alias[id]) {	// 已经配置别名
@@ -360,22 +382,22 @@
 				id = id.src;
 			}
 		}
-		// id = id.substr(0, id.lastIndexOf('/'));
+
 		first = id.charAt(0);
 
 		if (rAbsolutePath.test(id)) {	// 绝对路径
 			ret = id;
 		} else if (first !== '.' && first !== '/') {
-			ret = basePath + id;
+			ret = cwd + id;
 		} else if (id.slice(0, 2) === './') {	// 相对路径
-			ret = basePath + id;
+			ret = cwd + id;
 		} else if (id.slice(0, 2) === '..') {	// 父路径
-			ret = basedir + id;
+			ret = cwd + id;
 		} else if (first === '/') { // 根路径
-			rootPath = basePath.match(rRootPath);
+			rootPath = cwd.match(rRootPath);
 			ret = rootPath ? rootPath[0] + id.substring(1) : id;
 		} else {
-			ret = basePath + id;
+			ret = baseDir + id;
 		}
 		
 		ret = realPath(ret);
