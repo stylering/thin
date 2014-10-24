@@ -387,8 +387,8 @@
 
 		if (rAbsolutePath.test(id)) {	// 绝对路径
 			ret = id;
-		} else if (first !== '.' && first !== '/') {
-			ret = cwd + id;
+		// } else if (first !== '.' && first !== '/') {
+		// 	ret = cwd + id;
 		} else if (id.slice(0, 2) === './') {	// 相对路径
 			ret = cwd + id;
 		} else if (id.slice(0, 2) === '..') {	// 父路径
