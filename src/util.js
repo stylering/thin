@@ -2,7 +2,7 @@ define('util', function(){
 
 	var doc = document;
 
-	thin.util = {
+	return {
 		/**
 		 * @param {obj}
 		 * @desciption 	是否空对象

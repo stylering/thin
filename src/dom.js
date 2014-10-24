@@ -103,5 +103,5 @@ define('dom', function() {
 		width: ''
 	}
 
-	thin.$ = thin.dom = Dom.$;
+	return Dom.$;
 })

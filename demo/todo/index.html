@@ -14,12 +14,16 @@
 				'event': '../../src/event.js',
 				'router': '../../src/router.js',
 				'touch': '../../src/touch.js',
-				'util': '../../src/util.js'
+				'util': '../../src/util.js',
+				'http': '../../src/http.js',
+				'mvc': '../../src/mvc.js',
+				'platform': '../../src/platform.js',
+				'support': '../../src/support.js'
 			},
 		})
 
-		require('util', function(){
-			 console.log('1111');
+		require('dom', function($){
+			console.log($('body'));
 		})
 	}())
 	</script>

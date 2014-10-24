@@ -6,5 +6,5 @@ define('support', function() {
 		
 	}
 
-	thin.support = Support;
+	return Support;
 })

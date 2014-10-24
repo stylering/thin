@@ -227,4 +227,6 @@ define('router', function() {
 			return new RegExp('^' + route + '(?:\\?([\\s\\S]*))?$');
 		}
 	}
+
+	return Router;
 });

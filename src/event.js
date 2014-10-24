@@ -6,7 +6,7 @@
  * @author: stylering
  */
 
-define('event', function() {
+define('event', ['dom'], function($) {
 
 	var doc = document;
 	
@@ -324,5 +324,5 @@ define('event', function() {
 	  	};
 	});
 
-	thin.event = Event;
+	return Event;
 });

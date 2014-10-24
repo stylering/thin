@@ -1,4 +1,4 @@
-define('touch', ['event'], function() {
+define('touch', ['event'], function(event) {
 
 	var doc = document;
 
@@ -27,7 +27,7 @@ define('touch', ['event'], function() {
 	// 长按事件
 	var longTap = function() {
 		if (touch.last) {
-			thin.event.trigger('longTap', touch.el);
+			event.trigger('longTap', touch.el);
 			touch = {};
 		}
 		longTapTimeout = null;
@@ -49,7 +49,7 @@ define('touch', ['event'], function() {
 	// webkit内核浏览器事件类型为touchstart
 	// IE9事件类型为MSPointerDown
 	// IE10+事件类型为pointerdown
-	thin.event.on('touchstart MSPointerDown pointerdown', doc, function(e) {
+	event.on('touchstart MSPointerDown pointerdown', doc, function(e) {
 		var	distance,
 			now,
 			timeSpace;
@@ -72,7 +72,7 @@ define('touch', ['event'], function() {
 		longTapTimeout = setTimeout(longTap, 750);
 	});
 
-	thin.event.on('touchmove MSPointerMove pointermove', doc, function(e) {
+	event.on('touchmove MSPointerMove pointermove', doc, function(e) {
 		// 触摸已经移动了清除longTap事件
 		cancelLongTap();
 		touchEvent = e.touches[0];
@@ -84,16 +84,16 @@ define('touch', ['event'], function() {
 		distanceY = Math.abs(touch.y1 - touch.y2);
 	});
 
-	thin.event.on('touchend MSPointerUp pointerup', doc, function(e) {
+	event.on('touchend MSPointerUp pointerup', doc, function(e) {
 		// 触摸已经end了，清除longTap事件
 		cancelLongTap();
 		// 第二点的距离大于30的时候，触发swipe事件
 		if ((touch.x2 && distanceX > 30) || (touch.y2 && distanceY > 30)) {
 			swipeTimeout = setTimeout(function(){
 				// 触发swipe自定义事件
-				thin.event.trigger('swipe', touch.el);
+				event.trigger('swipe', touch.el);
 				// 触发swipeLeft等swipe自定义事件
-				thin.event.trigger('swipe' + direction(touch.x1, touch.x2, touch.y1, touch.y2), touch.el);
+				event.trigger('swipe' + direction(touch.x1, touch.x2, touch.y1, touch.y2), touch.el);
 				touch = {};
 			}, 0);
 		// 否则为tap事件
@@ -103,15 +103,15 @@ define('touch', ['event'], function() {
 			if (distanceX < 30 && distanceY < 30) {
 				tapTimeout = setTimeout(function() {
 					// 单次触摸，并且在事件中增加cancelTouch方法
-					if (touch.el) thin.event.trigger('tap', touch.el, {cancelTouch: cancelAll});
+					if (touch.el) event.trigger('tap', touch.el, {cancelTouch: cancelAll});
 					// 两次触摸
 					if (touch.isDoubleTap) {
-						if (touch.el) thin.event.trigger('doubleTap', touch.el);
+						if (touch.el) event.trigger('doubleTap', touch.el);
 						touch = {};
 					} else {
 						// 单触摸事件
 						singleTapTimeout = setTimeout(function(){
-							if (touch.el) thin.event.trigger('singleTap', touch.el);
+							if (touch.el) event.trigger('singleTap', touch.el);
 							singleTapTimeout = null;
 							touch = {};
 						}, 250);
@@ -124,14 +124,16 @@ define('touch', ['event'], function() {
 		}
 	});
 
-	thin.event.on('touchcancel MSPointerCancel pointercancel', doc, cancelAll);
-	thin.event.on('scroll', window, cancelAll);
+	event.on('touchcancel MSPointerCancel pointercancel', doc, cancelAll);
+	event.on('scroll', window, cancelAll);
 	
 	// 增加touch事件API
 	thin.forEach(['tap', 'singleTap', 'longTap', 'doubleTap', 'swipe', 
 		'swipeLeft', 'swipeRight', 'swipeTop', 'swipeBottom'], function(eventName) {
-		thin.event[eventName] = function(elem, callback) {
-			thin.event.on(eventName, elem, callback);
+		event[eventName] = function(elem, callback) {
+			event.on(eventName, elem, callback);
 		}
 	})
+
+	return event;
 })

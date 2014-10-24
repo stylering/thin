@@ -371,7 +371,6 @@
 			ret = basePath + id;
 		} else if (id.slice(0, 2) === '..') {	// 父路径
 			ret = basedir + id;
-			console.log(ret)
 		} else if (first === '/') { // 根路径
 			rootPath = basePath.match(rRootPath);
 			ret = rootPath ? rootPath[0] + id.substring(1) : id;
