@@ -159,13 +159,14 @@
 		rMultiSlash = /([^:/])\/+/g, 	// 解析路径 /a///b/ ==> /a//b/ ==> /a/b/
 		rWord = /[^, ]+/g; 				// 不等于逗号与空格的字符过滤
 
-	var loaderPath = doc.getElementById('thin-node') || getCurrentPath(),		// 加载器uri
+	var loaderPath = doc.getElementById('thin-node') || getCurrentPath(true),		// 加载器uri
 		loaderDir = dirName(loaderPath),										// 加载器路径
 		cwd = dirName(location.href),
 		baseDir = loaderDir,
 		head = doc.head || doc.getElementsByTagName('head')[0],
 		_uid = 0,
-		allMods = 'dom event http mvc platform router support touch util';
+		allMods = 'dom event http mvc platform router support touch util',
+		anonymousMod;
 
 	function uid() {
 		return _uid++;
@@ -243,6 +244,17 @@
 		return ret;
 	}
 
+	Module.save = function(uri, freeMod) {
+		var mod = Module.getModule(uri);
+
+		if (mod.status < STATUS.SAVED) {
+			mod.id = freeMod.id || uri;
+			mod.deps = freeMod.deps;
+			mod.factory = freeMod.factory;
+			mod.status = STATUS.SAVED;
+		}
+	}
+
 	// ['a', 'b'] ==> ['http://localhost/script/a.js', 'http://localhost/script/b.js']
 	Module.prototype.parseUris = function() {
 		return Module.parseUris(this.deps);
@@ -267,7 +279,17 @@
 	Module.prototype.request = function() {
 		var mod = this;
 
-		var onRequest = function() {
+		function onRequest() {
+			if (anonymousMod) {
+				Module.save(mod.id, anonymousMod);
+				anonymousMod = null;
+			}
+
+			// 检测循环依赖
+			if (mod.checkCircleDeps(mod.id)) {
+				throw new Error(mod.id + '模块与之前的模块存在循环依赖');
+			}
+
 			mod.load();
 		}
 
@@ -342,20 +364,32 @@
 
 		if (len === 1) {
 			factory = id;
+			id = undefined;
+			deps = [];
 		} else if (len === 2) {
 			factory = deps;
-			thin.isString(id) ? deps = [] : deps = id;
+			if (thin.isArray(id)) {
+				deps = id;
+				id = undefined;
+			} else {
+				deps = [];
+			}
 		}
 
-		id = id ? idToUris(id) : getCurrentPath();
-		mod = Module.getModule(id);
-		mod.deps = Module.parseUris(deps);
-		mod.factory = factory;
-		mod.status = STATUS.SAVED;
-		// 检测循环依赖
-		if (mod.checkCircleDeps(mod.id)) {
-			throw new Error(mod.id + '模块与之前的模块存在循环依赖');
+		var freeMod = {
+			id: idToUris(id),
+			deps: deps,
+			factory: factory
 		}
+
+		freeMod.id ? Module.save(freeMod.id, freeMod) : anonymousMod = freeMod;
+
+		// id = id ? idToUris(id) : getCurrentPath();
+		// mod = Module.getModule(id);
+		// mod.deps = Module.parseUris(deps);
+		// mod.factory = factory;
+		// mod.status = STATUS.SAVED;
+		
 	}
 
 	allMods.replace(/[^\s]+/g, function(m) {
@@ -374,6 +408,9 @@
 
 	// 对uri进行处理，返回uri的真实路径
 	function idToUris(id) {
+
+		if (!id) return '';
+
 		var ret, first, rootPath;
 		
 		if (thin.config.alias[id]) {	// 已经配置别名
@@ -452,21 +489,16 @@
 	}
 
 	// 获取加载器的路径地址
-	function getCurrentPath() {
-		var scripts, script,
+	function getCurrentPath(base) {
+		var scripts, node,
 			len, 
 			i = 0;
 
-		scripts = doc.getElementsByTagName('script');
+		scripts = (base ? doc: head).getElementsByTagName('script');
 		len = scripts.length;
-		if (window.VBArray) {	// for low IE
-			for (; script=scripts[--len]; ) {
-				if (script.readyState === 'interactive') break;
-			}
-		} else {
-			script = scripts[len - 1];
-		}
-		return script.src || script.getAttribute('src', 4);
+		node = scripts[scripts.length - 1];
+		
+		return node.hasAttribute ? node.src : node.getAttribute('src', 4);
 	}
 
 })(this, document);

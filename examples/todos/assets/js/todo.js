@@ -1,3 +1,8 @@
-define(function() {
-	console.log('define');
+define(['dom'], function($) {
+
+	console.log($('#J_newTodo'));
+
+	return {
+		a:1
+	}
 });
