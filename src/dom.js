@@ -2,11 +2,13 @@ define('dom', function() {
 
 	var doc = document;
 
-	var rId = /^#[\w-]*$/;			// id
-	var rTagName = /^[\w]+$/;		// html标签
-	var rClassName = /^\.[\w-]+/;	// css class 类名
-	var rTrim = /^\s*|\s*$/;		// 去除空格
-
+	var rId = /^#[\w-]*$/,						// id
+		rTagName = /^[\w]+$/,					// html标签
+		rClassName = /^\.[\w-]+/,				// css class 类名
+		rTrim = /^\s*|\s*$/,					// 去除空格
+		rFragment = /\s*<([\w|!][^>]*)>/,		// 匹配带<开头的html标签名
+		rSingleTag = /^<(\w)+\s*\/>(?:\/\1|)$/;	// 匹配单个html标签名
+		
 	// 检测是否支持classList属性
 	isSupportClassList = 'classList' in doc.body;
 
