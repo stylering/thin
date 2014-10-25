@@ -383,18 +383,13 @@
 		}
 
 		freeMod.id ? Module.save(freeMod.id, freeMod) : anonymousMod = freeMod;
-
-		// id = id ? idToUris(id) : getCurrentPath();
-		// mod = Module.getModule(id);
-		// mod.deps = Module.parseUris(deps);
-		// mod.factory = factory;
-		// mod.status = STATUS.SAVED;
-		
 	}
 
 	allMods.replace(/[^\s]+/g, function(m) {
 		config.alias[m] = baseDir + m + '.js';
 	});
+
+	// require('dom', function($){ thin.$ = thin.dom = $});
 
 	// 设置基础路径
 	function setBaseDir(uri) {
@@ -497,7 +492,7 @@
 		scripts = (base ? doc: head).getElementsByTagName('script');
 		len = scripts.length;
 		node = scripts[scripts.length - 1];
-		
+
 		return node.hasAttribute ? node.src : node.getAttribute('src', 4);
 	}
 
