@@ -51,6 +51,11 @@
 		}
 	);
 
+	// 普通对象类型
+	thin.isPlainObject = function(obj) {
+		return thin.isObject(obj) && !obj.window && Object.getPrototypeOf(obj) == Object.prototype;
+	}
+
 	/**
 	 * @description 外部方法
 	 * 

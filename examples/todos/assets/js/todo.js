@@ -1,6 +1,6 @@
-define(['dom'], function($) {
+define(['dom'], function(dom) {
 
-	console.log($('#J_newTodo'));
+	console.log(dom.$('<div>11111</div>', 'p'));
 
 	return {
 		a:1
