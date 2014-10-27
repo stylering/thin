@@ -1,6 +1,6 @@
 define(['dom'], function(dom) {
 
-	console.log(dom.$('<div>11111</div>', 'p'));
+	console.log(dom.$('div').get(2));
 
 	return {
 		a:1

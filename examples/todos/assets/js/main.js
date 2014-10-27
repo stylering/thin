@@ -3,5 +3,5 @@ thin.config({
 });
 
 require('todo', function(todo) {
-	console.log(todo);
+	// console.log(todo);
 })

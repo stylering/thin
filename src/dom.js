@@ -47,6 +47,23 @@ define('dom', function() {
 		return elems;
 	}
 
+	Dom.map = function(elems, callback) {
+		var value, values = [], i, key;
+
+		if (typeof elems.length === 'number') {
+			for (i=0; i<elems.length; i++) {
+				value = callback(elems[i], i);
+				if (value != null) values.push(value);
+			}
+		} else {
+			for (key in elems) {
+				value = callback(elems[key], key);
+				if (value != null) values.push(value);
+			}
+		}
+		return values;
+	}
+
 	Dom.fragment = function(html, name, properties) {
 		var dom, wrap, nodes;
 		// 单标签类型
@@ -150,9 +167,39 @@ define('dom', function() {
 	}
 
 	Dom.fn = Dom.prototype = {
-		each: '',
-		eq:'',
-		get: '',
+		/*********************元素遍历*************************************/
+		each: function(callback) {
+			[].every.call(this, function(el, idx) {
+				return callback.call(el, idx, el) !== false;
+			})
+			return this;
+		},
+		map: function(fn) {
+			return $(Dom.map(this, function(el, idx) {
+				return fn.call(el, idx, el);
+			}))
+		},
+		filter: '',
+		toArray: '',
+		ready: '',
+		slice: '',
+		forEach: '',
+		reduce: '',
+		push: '',
+		sort: '',
+		indexOf: '',
+		concat: '',
+		/**********************元素查找***************************/
+		eq: function(idx) {
+			return idx === -1 ? this.slice(idx) : this.slice(idx, + idx + 1);
+		},
+		get: function(idx) {
+			return idx === undefined ? Array.prototype.slice.call(this) : this[idx >= 0 ? idx : idx + this.length];
+		},
+		prev: function() {
+
+		},
+		next: '',
 		first: '',
 		last: '',
 		find: function(){},
@@ -160,26 +207,46 @@ define('dom', function() {
 		parents: '',
 		parent: '',
 		siblings: '',
+		contents: '',
+		children: '',
+		has: '',
+		not: '',
+		is: '',
+		add: '',
+		/***************************html操作****************************************/
 		empty: '',
-		show: '',
-		hide: '',
 		clone: '',
 		toggle: '',
-		prev: '',
-		next: '',
 		html: '',
+		offset: '',
+		index: '',
 		text: '',
+		wrap: '',
+		unwrap: '',
+		wrapInner: '',
+		wrapAll: '',
+		replaceWidth: '',
+		size: function() {
+			return this.length;
+		},
+		/**************************属性操作************************************/
+		show: '',
+		hide: '',
 		attr: '',
 		removeAttr: '',
+		width: '',
 		val: '',
+		position: '',
+		scrollLeft: '',
+		scrollTop: '',
 		offset: '',
+		data: '',
+		/**************************样式操作********************************************/
 		css: '',
-		index: '',
 		hasClass: '',
 		addClass: '',
 		removeClass: '',
 		toggleClass: '',
-		width: ''
 	}
 
 	return Dom;
