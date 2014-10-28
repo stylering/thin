@@ -132,6 +132,65 @@ define('dom', function() {
 		return obj instanceof Dom;
 	}
 
+	/**
+	 * @param {elem} 
+	 * @param {selector}
+	 * @description 检测dom元素是否匹配选择器selector, 兼容低版本ie6-8实现matchesSelector功能
+	 */
+	Dom.matches = (function() {
+		var body = doc.body;
+		var matchesSelector = body.webkitMatchesSelector || body.msMatchesSelector || body.mozMatchesSelector || body.oMatchesSelector;
+
+		var w3cMatches = function(elem, selector) {
+			return matchesSelector.call(elem, selector);				
+		}
+		// 低版本ie
+		var ieMatches = function(elem, selector) {
+			var parent,
+				matches;
+
+			parent = elem.parentNode;
+			// 元素已存在DOM文档树中
+			if (parent) {
+				var len;
+				matches = parent.querySelectorAll(selector);
+				len = matches.length;
+				while(len--) {
+					if (matches[len] == elem) {
+						return true;
+					}
+				}
+				return false;
+			} else {
+				var div,
+					parentNode;
+				// 元素未添加到DOM文档树
+				div = doc.createElement('div');
+				parentNode = div.appendChild(elem);
+				matches = parentNode.querySelector(selector);
+				div = null;
+				if (matches.length) {
+					return true;
+				}
+				return false;
+			}
+		}
+
+		return matchesSelector ? w3cMatches : ieMatches;			
+	}())
+
+	// 判断父元素是否包含子元素
+	Dom.contains = doc.documentElement.contains ? 
+		function(parent, node) {
+			return parent !== node && parent.contains(node);
+		} : 
+		function(parent, node) {
+			while(node && (node = node.parentNode)) {
+				if (node === parent) return true;
+			}
+			return false;
+		}
+
 	// 实现css选择器
 	Dom.query = function(selector, context) {
 		var result;
@@ -166,8 +225,26 @@ define('dom', function() {
 		return Array.prototype.slice.call(result);
 	}
 
+	function filtered(nodes, selector) {
+	  return selector == null ? $(nodes) : $(nodes).filter(selector)
+	}
+	function uniq(array) {
+		return [].filter.call(array, function(item, idx) {
+			return array.indexOf(item) == idx;
+		})
+	}
+	function children(element) {
+		return 'children' in element ? 
+			[].slice.call(element.children) : 
+			Dom.map(element.childNodes, function(node) {
+				if (node.nodeType == 1) {
+					return node;
+				}
+			})
+	}
+
 	Dom.fn = Dom.prototype = {
-		/*********************元素遍历*************************************/
+		/*********************元素遍历、过滤*************************************/
 		each: function(callback) {
 			[].every.call(this, function(el, idx) {
 				return callback.call(el, idx, el) !== false;
@@ -179,45 +256,166 @@ define('dom', function() {
 				return fn.call(el, idx, el);
 			}))
 		},
-		filter: '',
-		toArray: '',
-		ready: '',
-		slice: '',
-		forEach: '',
-		reduce: '',
-		push: '',
-		sort: '',
-		indexOf: '',
-		concat: '',
+		filter: function(selector) {
+			if (thin.isFunction(selector)) {
+				return this.not(this.not(selector));
+			}
+			return Dom.$([].filter.call(this, function(el) {
+				return Dom.matches(el, selector);
+			}));
+		},
+		toArray: function() {
+			return this.get();			
+		},
+		ready: function(callback) {
+			if (/complete|loaded|interactive/.test(document.readyState) && doc.body) {
+				callback(Dom);
+			} else {
+				doc.addEventListener('DOMContentLoaded', function() {
+					callback(Dom)
+				}, false);
+			}
+			return this;
+		},
+		slice: function() {
+			return Dom.$([].slice.apply(this, arguments))
+		},
+		forEach: thin.forEach,
+		reduce: [].reduce,
+		push: [].push,
+		sort: [].sort,
+		indexOf: [].indexOf,
+		concat: [].concat,
+		pluck: function(property) {
+			return Dom.map(this, function(el) {
+				return el[property];
+			})
+		},
 		/**********************元素查找***************************/
 		eq: function(idx) {
 			return idx === -1 ? this.slice(idx) : this.slice(idx, + idx + 1);
 		},
 		get: function(idx) {
-			return idx === undefined ? Array.prototype.slice.call(this) : this[idx >= 0 ? idx : idx + this.length];
+			return idx === undefined ? [].slice.call(this) : this[idx >= 0 ? idx : idx + this.length];
 		},
-		prev: function() {
-
+		prev: function(selector) {
+			return Dom.$(this.pluck('previousElementSibling')).filter(selector || '*');
 		},
-		next: '',
-		first: '',
-		last: '',
-		find: function(){},
-		closest: '',
-		parents: '',
-		parent: '',
-		siblings: '',
-		contents: '',
-		children: '',
-		has: '',
-		not: '',
-		is: '',
-		add: '',
+		next: function(selector) {
+			return Dom.$(this.pluck('nextElementSibling')).filter(selector || '*')
+		},
+		first: function() {
+			var el = this[0];
+			return el && !this.isObject(el) ? el : $(el);
+		},
+		last: function() {
+			var el = this[this.length - 1];
+			return el && !this.isObject(el) ? el : $(el);
+		},
+		find: function(selector) {
+			var result, $this = this;
+			if (!selector) {
+				return [];
+			} else if (typeof selector == 'object') {
+				result = Dom.$(selector).filter(function() {
+					var node = this;
+					return [].some.call($this, function(parent) {
+						return Dom.contents(parent, node);
+					})
+				})
+			} else if (this.length == 1) {
+				result = Dom.$(Dom.query(this[0], selector));
+			} else {
+				result = this.map(function() {
+					return Dom.query(this, selector);
+				})
+			}
+			return result;
+		},
+		closest: function(selector, context) {
+			var node = this[0], collection = false;
+			if (typeof selector == 'object') {
+				collection = Dom.$(selector);
+			}
+			while (node && !(collection ? collection.indexOf(node) >= 0 : Dom.matches(node, selector))) {
+				node = node !== context && !thin.isDocument(node) && node.parentNode;
+			}
+			return Dom.$(node);
+		},
+		parents: function(selector) {
+			var ancestors = [], nodes = this;
+			while(nodes.length > 0) {
+				nodes = Dom.map(nodes, function(node) {
+					if ((node = node.parentNode) && !thin.isDocument(node) && ancestors.indexOf(node) < 0) {
+						ancestors.push(node);
+						return node;
+					}
+				})
+			}
+			return filtered(ancestors, selector);
+		},
+		parent: function(selector) {
+			return filtered(uniq(this.pluck['parentNode']), selector);
+		},
+		siblings: function(selector) {
+			return filtered(this.map(function(i, el) {
+				return [].filter.call(children(el.parentNode), function(child) {
+					return child !== el;
+				})
+			}), selector);
+		},
+		contents: function() {
+			return this.map(function() {
+				return [].slice.call(this.childNodes);
+			})
+		},
+		children: function(selector) {
+			return filtered(this.map(function() {
+				return children(this);
+			}), selector)
+		},
+		has: function(selector) {
+			return this.filter(function() {
+				return thin.isObject(selector) ? 
+					$.contains(this, selector) : 
+					$(this).find(selector).size();
+			})
+		},
+		not: function(selector) {
+			var nodes = [];
+			// 为Function类型时，传入元素执行方法
+			if (thin.isFunction(selector) && selector.call !== undefined) {
+				this.each(function(idx) {
+					if (!selector.call(this, idx)) nodes.push(this);
+				})
+			} else {
+				var excludes = typeof selector == 'string' ? this.filter(selector) :
+					(typeof selector.length === 'number' && thin.isFunction(selector.item)) ? [].slice.call(selector) : Dom.$(selector);
+				this.forEach(function(el) {
+					if (excludes.indexOf(el) < 0) nodes.push(el);
+				})
+			}
+		},
+		is: function(selector) {
+			return this.length > 0 && Dom.matches(this[0], selector);
+		},
+		add: function(selector, context) {
+			return Dom.$(uniq(this.concat(Dom.$(selector, context))));
+		},
 		/***************************html操作****************************************/
-		empty: '',
-		clone: '',
-		toggle: '',
-		html: '',
+		empty: function() {
+			return this.each(function() {
+				this.innerHTML = '';
+			})
+		},
+		clone: function() {
+			return this.map(function() {
+				return this.cloneNode(true);
+			})
+		},
+		html: function(html) {
+			return '';
+		},
 		offset: '',
 		index: '',
 		text: '',
@@ -232,6 +430,12 @@ define('dom', function() {
 		/**************************属性操作************************************/
 		show: '',
 		hide: '',
+		toggle: function(setting) {
+			return this.each(function() {
+				var el = Dom.$(this);
+				(setting === undefined ? el.css('display') == 'none' : setting) ? el.show() : el.hide();
+			})
+		},
 		attr: '',
 		removeAttr: '',
 		width: '',

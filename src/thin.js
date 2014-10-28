@@ -52,9 +52,9 @@
 	);
 
 	// 普通对象类型
-	thin.isPlainObject = function(obj) {
-		return thin.isObject(obj) && !obj.window && Object.getPrototypeOf(obj) == Object.prototype;
-	}
+	thin.isPlainObject = function(obj) {return thin.isObject(obj) && !obj.window && Object.getPrototypeOf(obj) == Object.prototype; }
+	this.isDocument = function(obj) { return obj != null && obj.nodeType == obj.DOCUMENT_NODE; }
+	thin.isWindow = function(obj) { return obj != null && obj == obj.window; }
 
 	/**
 	 * @description 外部方法
