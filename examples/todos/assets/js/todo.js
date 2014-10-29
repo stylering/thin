@@ -1,7 +1,6 @@
-define(['dom'], function(dom) {
+define(function() {
 
-	console.log(dom.$('div').get(2));
-
+	console.log(thin.$('div').first());
 	return {
 		a:1
 	}

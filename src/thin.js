@@ -394,8 +394,6 @@
 		config.alias[m] = baseDir + m + '.js';
 	});
 
-	// require('dom', function($){ thin.$ = thin.dom = $});
-
 	// 设置基础路径
 	function setBaseDir(uri) {
 		return baseDir = dirName(idToUris(uri));
@@ -500,5 +498,8 @@
 
 		return node.hasAttribute ? node.src : node.getAttribute('src', 4);
 	}
+
+	// dom模块作为核心模块加载
+	require('dom', function($){ thin.$ = $ });
 
 })(this, document);
