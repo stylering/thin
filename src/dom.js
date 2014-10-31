@@ -497,11 +497,11 @@ define('dom', function() {
 					computedStyle = getComputedStyle(element, '');
 				if (!element) return;
 				if (typeof property == 'string') {
-					return element.style[camelize(property)] || computedStyle.getComputedStyle(property);
+					return element.style[camelize(property)] || computedStyle.getPropertyValue(property);
 				} else if (thin.isArray(property)) {
 					var props = {};
 					Dom.each(property, function(_, prop) {
-						props[prop] = (element.style[camelize(prop)] || computedStyle.getComputedStyle(prop));
+						props[prop] = (element.style[camelize(prop)] || computedStyle.getPropertyValue(prop));
 					})
 					return props;
 				}
