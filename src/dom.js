@@ -487,7 +487,7 @@ define('dom', function() {
 				(0 in this ? this[0].textContent : null);
 		},
 		wrap: function(structure) {
-			
+
 		},
 		unwrap: '',
 		wrapInner: '',
@@ -557,7 +557,30 @@ define('dom', function() {
 		position: '',
 		scrollLeft: '',
 		scrollTop: '',
-		offset: '',
+		offset: function(coordinates) {
+			if (coordinates) return this.each(function(index) {
+				var that = Dom(this),
+				coords = funcArg(this, coordinates, index, that.offset()),
+				parentOffset = that.offsetParent().offset(),
+				props = {
+					top: coords.top - parentOffset.top,
+					left: coords.left - parentOffset.left
+				};
+				if (that.css('position') == 'static') props['position'] = 'relative';
+				that.css(props);
+			})
+			if (!this.length) return null;
+			var obj = this[0].getBoundingClientRect();
+			return {
+				left: obj.left + window.pageXOffset,
+				top: obj.top + window.pageXOffset,
+				width: Math.round(obj.width),
+				heigth: Math.round(obj.height)
+			}
+		},
+		offsetParent: function() {
+
+		},
 		/**************************样式操作********************************************/
 		css: function(property, value) {
 			if (arguments.length < 2) {
