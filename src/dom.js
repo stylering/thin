@@ -296,6 +296,10 @@ define('dom', function() {
 		return elementDisplay[nodeName];
 	}
 
+	function setAttribute(node, name, value) {
+		value == null ? node.removeAttribute(name) : node.setAttribute(name, value);
+	}
+
 	Dom.fn = Dom.prototype = {
 		/*********************元素遍历、过滤*************************************/
 		each: function(callback) {
@@ -482,8 +486,8 @@ define('dom', function() {
 				}) : 
 				(0 in this ? this[0].textContent : null);
 		},
-		wrap: function() {
-
+		wrap: function(structure) {
+			
 		},
 		unwrap: '',
 		wrapInner: '',
@@ -514,15 +518,46 @@ define('dom', function() {
 				(setting === undefined ? el.css('display') == 'none' : setting) ? el.show() : el.hide();
 			})
 		},
-		attr: '',
-		removeAttr: '',
-		width: '',
-		val: '',
+		attr: function(name, value) {
+			var result, key;
+			return (typeof name == 'string' && (value === undefined)) ?
+				(!this.length || this[0].nodeType !== 1 ? undefined :
+					(!(result = this[0].getAttribute(name)) && name in this[0]) ? this[0][name] : result
+				) : 
+				this.each(function(idx) {
+					if (this.nodeType !== 1) return;
+					if (thin.isObject(name)) {
+						for (key in name) {
+							setAttribute(this, key, name[key]);
+						}
+					} else {
+						setAttribute(this, name, funcArg(this, value, idx, this.getAttribute(name)));
+					}
+				})
+		},
+		removeAttr: function(name) {
+			return this.each(function() {
+				this.nodeType === 1 && setAttribute(this, name)
+			})
+		},
+		width: function() {
+
+		},
+		val: function(value) {
+			return 0 in arguments ?
+				this.each(function(idx) {
+					this.value = funcArg(this, value, idx, this.value);
+				}) :
+				(this[0] && (this[0].multiple ? 
+					Dom(this[0]).find('option').filter(function(){ return this.selected }).pluck('value') : 
+					this[0].value)
+				)
+		},
+		data: '',
 		position: '',
 		scrollLeft: '',
 		scrollTop: '',
 		offset: '',
-		data: '',
 		/**************************样式操作********************************************/
 		css: function(property, value) {
 			if (arguments.length < 2) {

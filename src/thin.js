@@ -43,7 +43,7 @@
 
 	// 类型判断函数
 	_forEach(
-		['String', 'Boolean', 'Function', 'Array', 'Object', 'Number', 'RegExp'],
+		['String', 'Boolean', 'Function', 'Array', 'Number', 'RegExp'],
 		function(v) {
 			thin['is' + v] = function(o) {
 				return Object.prototype.toString.call(o).slice(8, -1) === v;
@@ -51,6 +51,7 @@
 		}
 	);
 
+	thin.isObject = function(obj) {return typeof obj == 'object'}
 	// 普通对象类型
 	thin.isPlainObject = function(obj) {return thin.isObject(obj) && !obj.window && Object.getPrototypeOf(obj) == Object.prototype; }
 	this.isDocument = function(obj) { return obj != null && obj.nodeType == obj.DOCUMENT_NODE; }
