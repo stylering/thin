@@ -20,7 +20,10 @@ define('dom', function() {
 		wraps = {'tr': tbody, 'tbody': table, 'thead': table, 'tfoot': table, 'td': tr, 'th': tr, '*': div };
 
 	var methodAttrs = ['val', 'css', 'html', 'text', 'data', 'width', 'height', 'offset'],
-		cssNumber = { 'column-count': 1, 'columns': 1, 'font-weight': 1, 'line-height': 1,'opacity': 1, 'z-index': 1, 'zoom': 1 };
+		cssNumber = { 'column-count': 1, 'columns': 1, 'font-weight': 1, 'line-height': 1,'opacity': 1, 'z-index': 1, 'zoom': 1 },
+		classCache = {},	// 缓存class正则表达式
+		elementDisplay = {}, // 缓存元素的display属性
+		classList = [];	// 先声明频繁使用的变量
 
 	function Dom(selector, context) {
 		return Dom.init(selector, context);
@@ -268,8 +271,29 @@ define('dom', function() {
 		return (typeof value == 'number' && !cssNumber[dasherize(name)]) ? value + 'px' : value;
 	}
 
+	// 生成className的正则，并缓存classCache对象中
+	function rClassCache(name) {
+		return name in classCache ? 
+			classCache[name] : classCache[name] = new RegExp('(^|\\s)' + name + '(\\s|$)');
+	}
+
 	function className(node, value) {
-		
+		var className = node.className;
+		if (value === undefined) return className;
+		node.className = value;
+	}
+
+	function defaultDisplay(nodeName) {
+		var element, display;
+		if (!elementDisplay[nodeName]) {
+			element = doc.createElement(nodeName);
+			doc.body.appendChild(element);
+			display = getComputedStyle(element, '').getPropertyValue('display');
+			element.parentNode.removeChild(element);
+			display == 'none' && (display = 'block');
+			elementDisplay[nodeName] = display;
+		}
+		return elementDisplay[nodeName];
 	}
 
 	Dom.fn = Dom.prototype = {
@@ -473,8 +497,17 @@ define('dom', function() {
 			return this.length;
 		},
 		/**************************属性操作************************************/
-		show: '',
-		hide: '',
+		show: function() {
+			return this.each(function() {
+				this.style.display == 'none' && (this.style.display = '');
+				if (getComputedStyle(this, '').getPropertyValue('display') == 'none') {
+					this.style.display = defaultDisplay(this.nodeName);
+				}
+			})
+		},
+		hide: function() {
+			return this.css('display', 'none');
+		},
 		toggle: function(setting) {
 			return this.each(function() {
 				var el = Dom(this);
@@ -531,14 +564,42 @@ define('dom', function() {
 			})
 		},
 		hasClass: function(name) {
-			// if (!name) return false;
-			// return [].some.call(this, function(el) {
-			// 	return this.test(className(el))
-			// }, )
+			if (!name) return false;
+			return [].some.call(this, function(el) {
+				return this.test(className(el));
+			}, rClassCache(name))
 		},
-		addClass: '',
-		removeClass: '',
-		toggleClass: '',
+		addClass: function(name) {
+			if (!name) return this;
+			return this.each(function(idx) {
+				classList = [];
+				var cls = className(this), newName = funcArg(this, name, idx, cls);
+				newName.split(/\s+/g).forEach(function(klass) {
+					if (!Dom(this).hasClass(klass)) classList.push(klass);
+				}, this);
+				classList.length && className(this, cls + (cls ? ' ': '') + classList.join(' '));
+			})
+		},
+		removeClass: function(name) {
+			return this.each(function(idx) {
+				if (name === undefined) return className(this, '');
+				classList = className(this);
+				funcArg(this, name, idx, classList).split(/\s+/g).forEach(function(klass) {
+					classList = classList.replace(rClassCache(klass), ' ');
+				})
+				className(this, classList.trim());
+			})
+		},
+		toggleClass: function(name, when) {
+			if (!name) return;
+			return this.each(function(idx) {
+				var that = Dom(this), names = funcArg(this, name, idx, className(this));
+				names.split(/\s+/g).forEach(function(klass) {
+					(when === undefined ? !that.hasClass(klass) : when) ?
+						that.addClass(klass) : that.removeClass(klass);
+				})
+			})
+		},
 	}
 
 	Dom.T.prototype = Dom.fn;
